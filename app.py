@@ -2,12 +2,15 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Load dataset
-df = pd.read_csv("db.csv")
+
 # Tente com latin1 primeiro
 try:
     df = pd.read_csv("db.csv", encoding="latin1")
 except UnicodeDecodeError:
+    
+# Load dataset
+df = pd.read_csv("db.csv")
+
 
 # Remove unnamed column if exists
 df = df.loc[:, ~df.columns.str.contains('^Unnamed')]

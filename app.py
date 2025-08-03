@@ -260,7 +260,6 @@ fig = px.scatter(
     hover_name='Original_Title',
     log_x=True,
     color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
-    trendline="lowess",
     title="Relação entre Orçamento e ROI"
 )
 st.plotly_chart(fig, use_container_width=True)

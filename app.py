@@ -531,11 +531,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div style="background: #FFFFFF; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; border: 2px solid #4169E1;">
-    <h3>📊 Fórmula Simples:</h3>
-</div>
-""", unsafe_allow_html=True)
+
 
 st.markdown("""
 <div style="font-size: 1.3em; background: #FFD700; padding: 1.5rem; border-radius: 10px; text-align: center; color: #333; font-weight: bold; margin: 1rem 0;">

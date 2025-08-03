@@ -12,65 +12,153 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado
+# CSS customizado com fundo temático
 st.markdown("""
 <style>
+    /* Fundo principal com tema super-herói */
+    .main .block-container {
+        background: linear-gradient(45deg, 
+            rgba(226, 54, 54, 0.1) 25%, 
+            transparent 25%, 
+            transparent 50%, 
+            rgba(0, 120, 240, 0.1) 50%, 
+            rgba(0, 120, 240, 0.1) 75%, 
+            transparent 75%, 
+            transparent);
+        background-size: 60px 60px;
+    }
+    
+    /* Padrão de fundo sutil */
+    .stApp {
+        background: linear-gradient(135deg, 
+            rgba(226, 54, 54, 0.05) 0%, 
+            rgba(255, 255, 255, 0.95) 50%, 
+            rgba(0, 120, 240, 0.05) 100%);
+    }
+    
     .main-header {
         background: linear-gradient(90deg, #E23636 0%, #0078F0 100%);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
         text-align: center;
         margin-bottom: 2rem;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        border: 3px solid #FFD700;
     }
+    
     .marvel-card {
         background: linear-gradient(135deg, #E23636, #FF6B6B);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
+        box-shadow: 0 5px 15px rgba(226, 54, 54, 0.4);
+        border: 2px solid #FFD700;
     }
+    
     .dc-card {
         background: linear-gradient(135deg, #0078F0, #4A90E2);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
+        box-shadow: 0 5px 15px rgba(0, 120, 240, 0.4);
+        border: 2px solid #FFD700;
     }
+    
     .winner-card {
         background: linear-gradient(135deg, #FFD700, #FFA500);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         text-align: center;
         font-weight: bold;
+        color: #333;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.5);
+        border: 3px solid #FF6347;
     }
+    
+    .insight-card {
+        background: linear-gradient(135deg, #98FB98, #90EE90);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: #2F4F2F;
+        margin: 1rem 0;
+        box-shadow: 0 5px 15px rgba(152, 251, 152, 0.4);
+        border-left: 5px solid #32CD32;
+    }
+    
     .outlier-card {
         background: linear-gradient(135deg, #FF6347, #FF4500);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
+        box-shadow: 0 5px 15px rgba(255, 99, 71, 0.4);
     }
+    
+    .conclusion-card {
+        background: linear-gradient(135deg, #9370DB, #8A2BE2);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin: 2rem 0;
+        box-shadow: 0 8px 20px rgba(147, 112, 219, 0.5);
+        border: 3px solid #FFD700;
+    }
+    
     .footer {
         background: linear-gradient(90deg, #E23636 0%, #0078F0 100%);
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
         text-align: center;
         margin-top: 2rem;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
+    
     .stMetric {
-        background: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,0.95);
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 15px;
         border-left: 5px solid #FFD700;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
     }
+    
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
     }
+    
     .winner-metric {
         animation: pulse 2s infinite;
     }
+    
+    /* Símbolos de super-herói no fundo */
+    .hero-symbol {
+        position: fixed;
+        opacity: 0.05;
+        font-size: 8rem;
+        z-index: -1;
+        color: #FFD700;
+    }
+    
+    .marvel-symbol {
+        top: 10%;
+        right: 10%;
+        transform: rotate(15deg);
+    }
+    
+    .dc-symbol {
+        bottom: 10%;
+        left: 10%;
+        transform: rotate(-15deg);
+    }
 </style>
+
+<!-- Símbolos de fundo -->
+<div class="hero-symbol marvel-symbol">⚡</div>
+<div class="hero-symbol dc-symbol">🦇</div>
+
 """, unsafe_allow_html=True)
 
 # Header principal
@@ -78,7 +166,7 @@ st.markdown("""
 <div class="main-header">
     <h1>🎬 MARVEL vs DC: ROI ANALYSIS 🏆</h1>
     <h3>Respostas às perguntas de negócio com controle de outliers</h3>
-    <p><em>"Dados precisos para decisões estratégicas"</em></p>
+    <p><em>"Dados precisos para decisões estratégicas - Explicado de forma simples!"</em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -241,12 +329,26 @@ with col1:
 with col2:
     winner = roi_comparison.loc[roi_comparison['ROI Médio'].idxmax()]
     st.markdown(f"""
-    <div class="winner-card">
+    <div class="winner-card winner-metric">
         <h3>🏆 Vencedor</h3>
         <h2>{winner['Franquia']}</h2>
         <p>ROI Médio: {winner['ROI Médio']:.2f}</p>
     </div>
     """, unsafe_allow_html=True)
+
+# Insight para a pergunta 1
+st.markdown("""
+<div class="insight-card">
+    <h3>🧠 O que isso significa? (Explicação Simples)</h3>
+    <p><strong>Imagine que você tem uma lojinha de doces:</strong></p>
+    <ul>
+        <li>🍭 ROI é como descobrir qual doce te dá mais dinheiro de volta</li>
+        <li>📊 O gráfico mostra que uma franquia consegue ganhar mais dinheiro com cada real investido</li>
+        <li>🎯 É como se uma franquia fosse melhor em transformar $1 em $3, enquanto a outra transforma $1 em $2</li>
+        <li>💡 Para os empresários: investir na franquia vencedora historicamente deu mais retorno!</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
 
 # 2. Como o ROI varia com o orçamento?
 st.header("2️⃣ Como o ROI varia com o orçamento?")
@@ -264,6 +366,21 @@ fig = px.scatter(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# Insight para a pergunta 2
+st.markdown("""
+<div class="insight-card">
+    <h3>🧠 O que isso significa? (Explicação Simples)</h3>
+    <p><strong>Imagine que você está comprando ingredientes para fazer bolos:</strong></p>
+    <ul>
+        <li>🎂 Às vezes, gastar mais ingredientes não significa que seu bolo vai vender melhor</li>
+        <li>💰 Alguns filmes gastam MUITO dinheiro mas não ganham proporcionalmente mais</li>
+        <li>🎯 As bolinhas maiores são filmes que ganharam muito dinheiro no total</li>
+        <li>📈 O segredo é encontrar o ponto doce: gastar o suficiente para fazer um bom filme, mas não desperdiçar</li>
+        <li>🏆 Os melhores filmes estão no topo do gráfico: gastaram menos e ganharam muito!</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
 # 3. Filmes de origem vs sequências
 st.header("3️⃣ Filmes de origem têm melhor ROI que sequências?")
 
@@ -280,6 +397,21 @@ fig = px.bar(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# Insight para a pergunta 3
+st.markdown("""
+<div class="insight-card">
+    <h3>🧠 O que isso significa? (Explicação Simples)</h3>
+    <p><strong>Imagine que você tem uma banda de música:</strong></p>
+    <ul>
+        <li>🎵 "Filmes de Origem" são como sua primeira música - tudo é novidade e pode ser uma grande surpresa!</li>
+        <li>🎶 "Sequências" são como fazer uma segunda música parecida - as pessoas já sabem o que esperar</li>
+        <li>⭐ O gráfico mostra se é melhor apostar em histórias novas ou continuar histórias que já funcionaram</li>
+        <li>🎭 Às vezes o público ama novidades, às vezes prefere personagens que já conhece</li>
+        <li>💡 Para os estúdios: isso ajuda a decidir se vale mais apostar em herói novo ou fazer "Parte 2"</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
 # 4. Evolução do ROI ao longo do tempo
 st.header("4️⃣ Como o ROI evoluiu ao longo dos anos?")
 
@@ -293,6 +425,21 @@ fig = px.line(
     title="Evolução do ROI por Ano"
 )
 st.plotly_chart(fig, use_container_width=True)
+
+# Insight para a pergunta 4
+st.markdown("""
+<div class="insight-card">
+    <h3>🧠 O que isso significa? (Explicação Simples)</h3>
+    <p><strong>Imagine que você está observando duas equipes de futebol ao longo dos anos:</strong></p>
+    <ul>
+        <li>⚽ Cada linha mostra como cada "time" (Marvel vs DC) jogou ao longo do tempo</li>
+        <li>📈 Quando a linha sobe, significa que o time teve um ano muito bom em ganhar dinheiro</li>
+        <li>📉 Quando desce, foi um ano mais difícil</li>
+        <li>🏃‍♂️ Você pode ver qual time está "na frente" em cada ano</li>
+        <li>🎯 Para investidores: mostra as tendências - qual franquia está melhorando ou piorando com o tempo</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
 
 # 5. Top 5 filmes por ROI
 st.header("5️⃣ Quais são os filmes com maior ROI?")
@@ -312,26 +459,117 @@ st.dataframe(
     use_container_width=True
 )
 
+# Insight para a pergunta 5
+st.markdown("""
+<div class="insight-card">
+    <h3>🧠 O que isso significa? (Explicação Simples)</h3>
+    <p><strong>Imagine um ranking dos melhores "negócios" do cinema:</strong></p>
+    <ul>
+        <li>🏆 Estes são os filmes que foram os "negócios da China" - gastaram pouco e ganharam MUITO!</li>
+        <li>💎 São como encontrar um diamante barato que vale uma fortuna</li>
+        <li>🎯 Para os estúdios: estes filmes são o modelo ideal de como fazer cinema que dá lucro</li>
+        <li>🔍 Analisando estes campeões, dá para descobrir a "fórmula do sucesso"</li>
+        <li>📚 É como estudar os melhores alunos da sala para saber como tirar nota 10!</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
+# Análise de conclusão baseada nos dados
+def get_winner_analysis(include_outliers):
+    if include_outliers:
+        analysis_df = df[df['Company'].isin(selected_companies)]
+    else:
+        analysis_df = df[(df['Company'].isin(selected_companies)) & (df['Outlier'] == 'Normal')]
+    
+    roi_by_company = analysis_df.groupby('Company')['ROI'].mean()
+    winner = roi_by_company.idxmax()
+    winner_roi = roi_by_company.max()
+    loser = roi_by_company.idxmin()
+    loser_roi = roi_by_company.min()
+    
+    return winner, winner_roi, loser, loser_roi
+
 # Conclusão final
 st.markdown("---")
 st.header("🎯 Conclusões Estratégicas")
 
+# Análise com e sem outliers
+winner_with, roi_with, loser_with, roi_loser_with = get_winner_analysis(True)
+winner_without, roi_without, loser_without, roi_loser_without = get_winner_analysis(False)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"""
+    <div class="marvel-card">
+        <h3>📊 COM Outliers</h3>
+        <h2>🏆 Vencedor: {winner_with}</h2>
+        <p><strong>ROI Médio:</strong> {roi_with:.2f}</p>
+        <p><strong>Perdedor:</strong> {loser_with} (ROI: {roi_loser_with:.2f})</p>
+        <hr>
+        <p><em>Inclui casos extremos como "Joker" que podem distorcer a análise</em></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+    <div class="dc-card">
+        <h3>📊 SEM Outliers</h3>
+        <h2>🏆 Vencedor: {winner_without}</h2>
+        <p><strong>ROI Médio:</strong> {roi_without:.2f}</p>
+        <p><strong>Perdedor:</strong> {loser_without} (ROI: {roi_loser_without:.2f})</p>
+        <hr>
+        <p><em>Análise mais representativa para planejamento estratégico</em></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Conclusão geral
+conclusion_text = ""
+if winner_with == winner_without:
+    conclusion_text = f"""
+    <h2>🎉 RESULTADO CONSISTENTE!</h2>
+    <h3>{winner_with} vence em AMBOS os cenários!</h3>
+    <p>Isso significa que {winner_with} tem uma vantagem consistente e confiável no ROI, 
+    independentemente de incluirmos ou não casos extremos na análise.</p>
+    """
+else:
+    conclusion_text = f"""
+    <h2>⚠️ RESULTADOS DIFERENTES!</h2>
+    <h3>Com outliers: {winner_with} vence | Sem outliers: {winner_without} vence</h3>
+    <p>Isso significa que casos extremos estão influenciando significativamente os resultados. 
+    Para decisões estratégicas, recomenda-se focar na análise SEM outliers ({winner_without}).</p>
+    """
+
+st.markdown(f"""
+<div class="conclusion-card">
+    {conclusion_text}
+    <hr>
+    <h3>💡 Recomendação Final para Investidores:</h3>
+    <p>Com base na análise de ROI histórico, investimentos em <strong>{winner_without}</strong> 
+    demonstraram maior retorno consistente sobre o investimento quando consideramos 
+    o desempenho típico (sem outliers extremos).</p>
+</div>
+""", unsafe_allow_html=True)
+
 if not include_outliers:
     st.success("""
-    **Análise sem outliers (recomendada):**
+    **✅ Análise sem outliers (recomendada para estratégia):**
     - Fornece uma visão mais representativa do desempenho típico das franquias
-    - Útil para planejamento estratégico e previsões
+    - Útil para planejamento estratégico e previsões confiáveis
+    - Remove casos extremos que podem criar expectativas irreais
     """)
 else:
     st.warning("""
-    **Análise incluindo outliers:**
+    **⚠️ Análise incluindo outliers:**
     - Mostra casos excepcionais que podem distorcer as médias
     - Útil para identificar oportunidades excepcionais ou riscos extremos
+    - Pode criar expectativas irreais baseadas em sucessos atípicos
     """)
 
 st.markdown("""
 <div class="footer">
-    <p>📊 Análise de ROI Marvel vs DC | Controle completo sobre outliers</p>
-    <p>💡 Dados atualizados em 2025 | Dashboard desenvolvido com Streamlit</p>
+    <p>📊 Análise Completa de ROI Marvel vs DC | Insights para Todos! 🎬</p>
+    <p>💡 Dashboard Interativo 2025 | Explicações Simples + Análise Profissional 🏆</p>
+    <p>🦸‍♂️ Desenvolvido com Streamlit | Marvel ⚡ vs DC 🦇</p>
 </div>
 """, unsafe_allow_html=True)

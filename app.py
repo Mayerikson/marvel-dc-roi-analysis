@@ -144,25 +144,82 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Função para detectar outliers
-def detect_outliers(df, column='ROI'):
+def detect_outliers(df, column='ROI', method='iqr'):
     if df[column].empty or df[column].isna().all():
         df['Outlier'] = 'Normal'
         return df
     
-    Q1 = df[column].quantile(0.25)
-    Q3 = df[column].quantile(0.75)
-    IQR = Q3 - Q1
+    if method == 'iqr':
+        Q1 = df[column].quantile(0.25)
+        Q3 = df[column].quantile(0.75)
+        IQR = Q3 - Q1
+        
+        # Debug: mostrar valores dos quartis
+        st.sidebar.write(f"**Debug Outliers (Método IQR):**")
+        st.sidebar.write(f"Q1 (25%): {Q1:.3f} ({Q1:.1%})")
+        st.sidebar.write(f"Q3 (75%): {Q3:.3f} ({Q3:.1%})")
+        st.sidebar.write(f"IQR: {IQR:.3f}")
+        
+        if IQR == 0:
+            # Se IQR é 0, usar método alternativo
+            method = 'std'
+        else:
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            st.sidebar.write(f"Limite inferior: {lower_bound:.3f} ({lower_bound:.1%})")
+            st.sidebar.write(f"Limite superior: {upper_bound:.3f} ({upper_bound:.1%})")
     
-    if IQR == 0:
-        df['Outlier'] = 'Normal'
-        return df
+    if method == 'std' or (method == 'iqr' and IQR == 0):
+        # Método alternativo: média ± 2 desvios padrão
+        mean_val = df[column].mean()
+        std_val = df[column].std()
+        
+        st.sidebar.write(f"**Método Alternativo (Desvio Padrão):**")
+        st.sidebar.write(f"Média: {mean_val:.3f} ({mean_val:.1%})")
+        st.sidebar.write(f"Desvio Padrão: {std_val:.3f}")
+        
+        lower_bound = mean_val - 2 * std_val
+        upper_bound = mean_val + 2 * std_val
+        
+        st.sidebar.write(f"Limite inferior: {lower_bound:.3f} ({lower_bound:.1%})")
+        st.sidebar.write(f"Limite superior: {upper_bound:.3f} ({upper_bound:.1%})")
     
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
+    def classify_outlier(x):
+        if pd.isna(x):
+            return 'Normal'
+        elif (x < lower_bound) or (x > upper_bound):
+            return 'Outlier'
+        else:
+            return 'Normal'
     
-    df['Outlier'] = df[column].apply(
-        lambda x: 'Outlier' if (x < lower_bound) or (x > upper_bound) else 'Normal'
-    )
+    df['Outlier'] = df[column].apply(classify_outlier)
+    
+    outlier_count = (df['Outlier'] == 'Outlier').sum()
+    st.sidebar.write(f"**Outliers encontrados: {outlier_count}**")
+    
+    if outlier_count > 0:
+        outlier_films = df[df['Outlier'] == 'Outlier'][['Original_Title', 'ROI']].sort_values('ROI', ascending=False)
+        st.sidebar.write("**Filmes outliers:**")
+        for _, row in outlier_films.iterrows():
+            st.sidebar.write(f"• {row['Original_Title']}: {row['ROI']:.1%}")
+    else:
+        # Se nenhum outlier foi encontrado, identificar manualmente os extremos
+        st.sidebar.write("**Nenhum outlier estatístico detectado.**")
+        st.sidebar.write("**Filmes com ROI mais extremos:**")
+        
+        # Top 3 maiores ROI
+        top_performers = df.nlargest(3, 'ROI')[['Original_Title', 'ROI']]
+        st.sidebar.write("Maiores ROI:")
+        for _, row in top_performers.iterrows():
+            st.sidebar.write(f"• {row['Original_Title']}: {row['ROI']:.1%}")
+        
+        # Top 3 menores ROI
+        bottom_performers = df.nsmallest(3, 'ROI')[['Original_Title', 'ROI']]
+        st.sidebar.write("Menores ROI:")
+        for _, row in bottom_performers.iterrows():
+            st.sidebar.write(f"• {row['Original_Title']}: {row['ROI']:.1%}")
+    
     return df
 
 # Carregar dados reais
@@ -276,21 +333,64 @@ df = load_data()
 df = detect_outliers(df)
 
 # Sidebar com controles
-st.sidebar.header("Controles da Análise")
+st.sidebar.header("🎛️ Controles da Análise")
 
-show_outliers = st.sidebar.checkbox("Incluir Outliers na análise", value=True)
+# Seleção de franquias
 companies = st.sidebar.multiselect(
-    "Selecionar Franquias:", 
+    "🎭 Selecionar Franquias:", 
     options=df['Company'].unique(), 
-    default=df['Company'].unique()
+    default=df['Company'].unique(),
+    help="Escolha quais franquias incluir na análise"
 )
 
-# Filtrar dados
-df_filtered = df[df['Company'].isin(companies)]
-if not show_outliers:
-    df_filtered = df_filtered[df_filtered['Outlier'] == 'Normal']
+# Checkbox para outliers
+show_outliers = st.sidebar.checkbox(
+    "📊 Incluir Outliers na análise", 
+    value=True,
+    help="Outliers são filmes com performance financeira extremamente alta ou baixa"
+)
 
-# Análise com e sem outliers para conclusão
+# Mostrar estatísticas das seleções
+st.sidebar.markdown("---")
+st.sidebar.write(f"**Franquias selecionadas:** {len(companies)}")
+if 'Marvel' in companies:
+    marvel_count = len(df[df['Company'] == 'Marvel'])
+    st.sidebar.write(f"• Marvel: {marvel_count} filmes")
+if 'DC' in companies:
+    dc_count = len(df[df['Company'] == 'DC'])
+    st.sidebar.write(f"• DC: {dc_count} filmes")
+
+# Informações sobre filtros aplicados
+total_before_filter = len(df)
+df_after_company = df[df['Company'].isin(companies)] if companies else pd.DataFrame()
+
+if len(df_after_company) > 0:
+    df_after_outliers = df_after_company[df_after_company['Outlier'] == 'Normal'] if not show_outliers else df_after_company
+    st.sidebar.write(f"**Total após filtros:** {len(df_after_outliers)} de {total_before_filter} filmes")
+else:
+    st.sidebar.write("⚠️ Nenhuma franquia selecionada!")
+
+st.sidebar.markdown("---")
+
+# Filtrar dados
+if not companies:
+    st.error("⚠️ Por favor, selecione pelo menos uma franquia na sidebar!")
+    st.stop()
+
+df_filtered = df[df['Company'].isin(companies)].copy()
+
+if not show_outliers:
+    outliers_before = len(df_filtered[df_filtered['Outlier'] == 'Outlier'])
+    df_filtered = df_filtered[df_filtered['Outlier'] == 'Normal']
+    if outliers_before > 0:
+        st.info(f"ℹ️ {outliers_before} outlier(s) foram excluídos da análise. Ative o filtro na sidebar para incluí-los.")
+
+# Verificar se ainda há dados após filtros
+if len(df_filtered) == 0:
+    st.error("❌ Nenhum dado disponível após aplicar os filtros selecionados!")
+    st.stop()
+
+# Análise com e sem outliers para conclusão (sempre usando dados completos)
 df_no_outliers = df[df['Outlier'] == 'Normal']
 
 # Cores para gráficos
@@ -560,116 +660,141 @@ st.markdown('<div class="question-header">🎯 ANÁLISE DE OUTLIERS: O que são 
 outliers_df = df[df['Outlier'] == 'Outlier'].copy()
 normal_df = df[df['Outlier'] == 'Normal'].copy()
 
+# Análise manual dos extremos (independente da detecção automática)
+st.markdown("""
+### 🔍 **O que são Outliers?**
+Outliers são valores que se distanciam significativamente do padrão dos demais dados. 
+No contexto de ROI, são filmes com performance financeira **extremamente alta ou baixa** 
+comparado à média geral.
+""")
+
+# Mostrar os extremos sempre
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("🚀 **PERFORMANCES EXCEPCIONAIS** (Top 5 ROI)")
+    top_performers = df.nlargest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
+    top_display = top_performers.copy()
+    top_display['ROI'] = top_display['ROI'].apply(lambda x: f"{x:.1%}")
+    top_display['Budget'] = top_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
+    top_display['Gross_Worldwide'] = top_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
+    st.dataframe(top_display, hide_index=True)
+    
+    st.markdown("**Por que são considerados extremos:**")
+    for _, film in top_performers.iterrows():
+        roi_vs_median = film['ROI'] / df['ROI'].median()
+        st.write(f"• **{film['Original_Title']}**: {film['ROI']:.1%} - {roi_vs_median:.1f}x a mediana!")
+
+with col2:
+    st.subheader("📉 **PERFORMANCES PROBLEMÁTICAS** (Bottom 5 ROI)")
+    bottom_performers = df.nsmallest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
+    bottom_display = bottom_performers.copy()
+    bottom_display['ROI'] = bottom_display['ROI'].apply(lambda x: f"{x:.1%}")
+    bottom_display['Budget'] = bottom_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
+    bottom_display['Gross_Worldwide'] = bottom_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
+    st.dataframe(bottom_display, hide_index=True)
+    
+    st.markdown("**Por que são considerados problemáticos:**")
+    for _, film in bottom_performers.iterrows():
+        if film['ROI'] < 0:
+            loss = (film['Budget'] - film['Gross_Worldwide']) / 1e6
+            st.write(f"• **{film['Original_Title']}**: {film['ROI']:.1%} - Prejuízo de ~${loss:.0f}M")
+        else:
+            st.write(f"• **{film['Original_Title']}**: {film['ROI']:.1%} - ROI muito baixo")
+
+# Detecção automática vs manual
 if len(outliers_df) > 0:
-    st.markdown("""
-    ### 🔍 **O que são Outliers?**
-    Outliers são valores que se distanciam significativamente do padrão dos demais dados. 
-    No contexto de ROI, são filmes com performance financeira **extremamente alta ou baixa** 
-    comparado à média geral.
-    
-    ### 📊 **Como identificamos?**
-    Usamos o método IQR (Interquartile Range):
-    - **Q1**: 25% dos dados (1º quartil)
-    - **Q3**: 75% dos dados (3º quartil) 
-    - **IQR**: Q3 - Q1
-    - **Outliers**: Valores abaixo de Q1 - 1.5×IQR ou acima de Q3 + 1.5×IQR
+    st.markdown(f"""
+    ### 📊 **Detecção Automática de Outliers**
+    O método estatístico identificou **{len(outliers_df)} outliers** usando critérios matemáticos.
     """)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🚀 **OUTLIERS POSITIVOS** (Super Sucessos)")
-        positive_outliers = outliers_df[outliers_df['ROI'] > df['ROI'].quantile(0.75)]
-        if len(positive_outliers) > 0:
-            pos_display = positive_outliers[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
-            pos_display['ROI'] = pos_display['ROI'].apply(lambda x: f"{x:.1%}")
-            pos_display['Budget'] = pos_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
-            pos_display['Gross_Worldwide'] = pos_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
-            st.dataframe(pos_display, hide_index=True)
-            
-            st.markdown("**Por que são outliers:**")
-            for _, film in positive_outliers.iterrows():
-                st.write(f"• **{film['Original_Title']}**: ROI de {film['ROI']:.1%} - Performance excepcional!")
-        else:
-            st.write("Nenhum outlier positivo identificado")
-    
-    with col2:
-        st.subheader("📉 **OUTLIERS NEGATIVOS** (Grandes Fracassos)")
-        negative_outliers = outliers_df[outliers_df['ROI'] < df['ROI'].quantile(0.25)]
-        if len(negative_outliers) > 0:
-            neg_display = negative_outliers[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
-            neg_display['ROI'] = neg_display['ROI'].apply(lambda x: f"{x:.1%}")
-            neg_display['Budget'] = neg_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
-            neg_display['Gross_Worldwide'] = neg_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
-            st.dataframe(neg_display, hide_index=True)
-            
-            st.markdown("**Por que são outliers:**")
-            for _, film in negative_outliers.iterrows():
-                st.write(f"• **{film['Original_Title']}**: ROI de {film['ROI']:.1%} - Performance muito abaixo do esperado")
-        else:
-            st.write("Nenhum outlier negativo identificado")
-    
-    # Estatísticas dos outliers
-    st.markdown("### 📈 **Impacto dos Outliers nas Médias**")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "ROI com Outliers", 
-            f"{df['ROI'].mean():.1%}",
-            f"{(df['ROI'].mean() - normal_df['ROI'].mean()):.1%}"
-        )
-    
-    with col2:
-        st.metric(
-            "ROI sem Outliers", 
-            f"{normal_df['ROI'].mean():.1%}",
-            "Mais estável"
-        )
-    
-    with col3:
-        st.metric(
-            "Total de Outliers", 
-            f"{len(outliers_df)} filmes",
-            f"{len(outliers_df)/len(df)*100:.1f}% do dataset"
-        )
-    
-    # Razões para excluir outliers
-    st.markdown("""
-    ### 🎯 **Por que excluir Outliers na análise?**
-    
-    **✅ Argumentos A FAVOR da exclusão:**
-    - **Análise mais representativa**: Remove casos extremos que distorcem a média
-    - **Comparação mais justa**: Avalia a capacidade consistente de cada franquia
-    - **Estratégia de negócios**: Foca na performance "típica" esperada
-    - **Reduz variabilidade**: Estatísticas mais estáveis e confiáveis
-    
-    **❌ Argumentos CONTRA a exclusão:**
-    - **Capacidade de criar sucessos**: Blockbusters fazem parte da estratégia
-    - **Realidade do mercado**: Sucessos extremos geram muito lucro
-    - **Gestão de risco**: Importante avaliar tanto sucessos quanto fracassos
-    - **Completude dos dados**: Todos os filmes fazem parte da história
-    
-    **🔧 Use o filtro acima para alternar entre as duas análises e tire suas próprias conclusões!**
-    """)
+    auto_outliers = outliers_df[['Original_Title', 'Company', 'ROI']].copy()
+    auto_outliers['ROI'] = auto_outliers['ROI'].apply(lambda x: f"{x:.1%}")
+    st.dataframe(auto_outliers, hide_index=True)
 
 else:
     st.markdown("""
-    ### 📊 **Nenhum Outlier Detectado**
+    ### 📊 **Detecção Automática vs Análise Manual**
     
-    Usando o método IQR (Interquartile Range), não foram identificados outliers significativos 
-    nos dados de ROI. Isso significa que todos os filmes têm performance dentro do padrão 
-    estatisticamente esperado.
+    **🤖 Detecção Automática:** Nenhum outlier estatístico detectado pelo método IQR.
     
-    **Possíveis razões:**
-    - Dataset pequeno (39 filmes)
-    - Distribuição relativamente uniforme dos ROIs
-    - Critério IQR pode ser conservador para este dataset
+    **👁️ Análise Visual:** Claramente existem filmes com performances extremas:
+    - **Joker (DC)**: ROI excepcional para um orçamento baixo
+    - **Avengers: Endgame (Marvel)**: Maior bilheteria da história
+    - **Catwoman (DC)**: Fracasso notório de bilheteria
+    - **Jonah Hex (DC)**: ROI extremamente baixo
     
-    💡 **Dica**: Mesmo sem outliers estatísticos, você pode observar filmes com ROI 
-    muito alto ou baixo nas tabelas "TOP 5" e "BOTTOM 5" acima.
+    💡 **Isso mostra que métodos estatísticos nem sempre capturam outliers óbvios em datasets pequenos!**
     """)
+
+# Análise de impacto sempre baseada nos extremos
+st.markdown("### 📈 **Impacto dos Extremos nas Médias**")
+
+# Remover top 2 e bottom 2 para simular remoção de "outliers manuais"
+df_no_extremes = df.copy()
+top_2_idx = df.nlargest(2, 'ROI').index
+bottom_2_idx = df.nsmallest(2, 'ROI').index
+extreme_idx = top_2_idx.union(bottom_2_idx)
+df_no_extremes = df_no_extremes.drop(extreme_idx)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "ROI com TODOS os filmes", 
+        f"{df['ROI'].mean():.1%}",
+        f"Desvio: {df['ROI'].std():.1%}"
+    )
+
+with col2:
+    st.metric(
+        "ROI sem 4 EXTREMOS", 
+        f"{df_no_extremes['ROI'].mean():.1%}",
+        f"{(df_no_extremes['ROI'].mean() - df['ROI'].mean()):.1%}"
+    )
+
+with col3:
+    roi_median = df['ROI'].median()
+    st.metric(
+        "ROI Mediana (mais estável)", 
+        f"{roi_median:.1%}",
+        "Não afetada por extremos"
+    )
+
+# Casos específicos que você mencionou
+st.markdown("""
+### 🎬 **Casos Específicos Mencionados**
+
+**🃏 Joker (2019):** 
+- Orçamento: $55M | Receita: $1.06B | ROI: 1,828%
+- **Por que é outlier:** Menor orçamento DC, maior retorno da franquia
+
+**🕷️ Filmes Marvel (vários):**
+- Avengers: Endgame - ROI: 686% com maior bilheteria da história
+- Guardians of the Galaxy - ROI: 354% para personagens desconhecidos
+
+**💡 Esses casos mostram como sucessos inesperados podem distorcer análises médias!**
+""")
+
+# Razões para excluir outliers (mantendo a seção educativa)
+st.markdown("""
+### 🎯 **Por que excluir Outliers na análise?**
+
+**✅ Argumentos A FAVOR da exclusão:**
+- **Análise mais representativa**: Remove casos extremos que distorcem a média
+- **Comparação mais justa**: Avalia a capacidade consistente de cada franquia
+- **Estratégia de negócios**: Foca na performance "típica" esperada
+- **Reduz variabilidade**: Estatísticas mais estáveis e confiáveis
+
+**❌ Argumentos CONTRA a exclusão:**
+- **Capacidade de criar sucessos**: Blockbusters fazem parte da estratégia
+- **Realidade do mercado**: Sucessos extremos geram muito lucro
+- **Gestão de risco**: Importante avaliar tanto sucessos quanto fracassos
+- **Completude dos dados**: Todos os filmes fazem parte da história
+
+**🔧 Use o filtro na sidebar para alternar entre as análises e tire suas próprias conclusões!**
+""")
 
 # Estatísticas do dataset
 st.markdown('<div class="question-header">📈 Estatísticas do Dataset</div>', unsafe_allow_html=True)

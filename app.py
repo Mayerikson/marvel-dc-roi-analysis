@@ -583,6 +583,6 @@ def load_data():
             'Man of Steel', 'Batman v Superman: Dawn of Justice', 'Suicide Squad', 'Wonder Woman',
             'Justice League', 'Aquaman', 'Shazam!', 'Birds of Prey', 'Wonder Woman 1984',
             'The Suicide Squad', 'The Batman', 'Black Adam'
-        ],
+        ]},
      
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)

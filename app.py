@@ -553,8 +553,123 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# Insights finais
-st.markdown('<div class="insight-text">📊 Análise baseada em dados reais de ROI (Retorno sobre Investimento) de filmes Marvel e DC. ROI = (Receita Mundial - Orçamento) / Orçamento. Dataset com 39 filmes desde 2004.</div>', unsafe_allow_html=True)
+# ANÁLISE DE OUTLIERS
+st.markdown('<div class="question-header">🎯 ANÁLISE DE OUTLIERS: O que são e por que excluí-los?</div>', unsafe_allow_html=True)
+
+# Identificar outliers
+outliers_df = df[df['Outlier'] == 'Outlier'].copy()
+normal_df = df[df['Outlier'] == 'Normal'].copy()
+
+if len(outliers_df) > 0:
+    st.markdown("""
+    ### 🔍 **O que são Outliers?**
+    Outliers são valores que se distanciam significativamente do padrão dos demais dados. 
+    No contexto de ROI, são filmes com performance financeira **extremamente alta ou baixa** 
+    comparado à média geral.
+    
+    ### 📊 **Como identificamos?**
+    Usamos o método IQR (Interquartile Range):
+    - **Q1**: 25% dos dados (1º quartil)
+    - **Q3**: 75% dos dados (3º quartil) 
+    - **IQR**: Q3 - Q1
+    - **Outliers**: Valores abaixo de Q1 - 1.5×IQR ou acima de Q3 + 1.5×IQR
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🚀 **OUTLIERS POSITIVOS** (Super Sucessos)")
+        positive_outliers = outliers_df[outliers_df['ROI'] > df['ROI'].quantile(0.75)]
+        if len(positive_outliers) > 0:
+            pos_display = positive_outliers[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
+            pos_display['ROI'] = pos_display['ROI'].apply(lambda x: f"{x:.1%}")
+            pos_display['Budget'] = pos_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
+            pos_display['Gross_Worldwide'] = pos_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
+            st.dataframe(pos_display, hide_index=True)
+            
+            st.markdown("**Por que são outliers:**")
+            for _, film in positive_outliers.iterrows():
+                st.write(f"• **{film['Original_Title']}**: ROI de {film['ROI']:.1%} - Performance excepcional!")
+        else:
+            st.write("Nenhum outlier positivo identificado")
+    
+    with col2:
+        st.subheader("📉 **OUTLIERS NEGATIVOS** (Grandes Fracassos)")
+        negative_outliers = outliers_df[outliers_df['ROI'] < df['ROI'].quantile(0.25)]
+        if len(negative_outliers) > 0:
+            neg_display = negative_outliers[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']].copy()
+            neg_display['ROI'] = neg_display['ROI'].apply(lambda x: f"{x:.1%}")
+            neg_display['Budget'] = neg_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
+            neg_display['Gross_Worldwide'] = neg_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
+            st.dataframe(neg_display, hide_index=True)
+            
+            st.markdown("**Por que são outliers:**")
+            for _, film in negative_outliers.iterrows():
+                st.write(f"• **{film['Original_Title']}**: ROI de {film['ROI']:.1%} - Performance muito abaixo do esperado")
+        else:
+            st.write("Nenhum outlier negativo identificado")
+    
+    # Estatísticas dos outliers
+    st.markdown("### 📈 **Impacto dos Outliers nas Médias**")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "ROI com Outliers", 
+            f"{df['ROI'].mean():.1%}",
+            f"{(df['ROI'].mean() - normal_df['ROI'].mean()):.1%}"
+        )
+    
+    with col2:
+        st.metric(
+            "ROI sem Outliers", 
+            f"{normal_df['ROI'].mean():.1%}",
+            "Mais estável"
+        )
+    
+    with col3:
+        st.metric(
+            "Total de Outliers", 
+            f"{len(outliers_df)} filmes",
+            f"{len(outliers_df)/len(df)*100:.1f}% do dataset"
+        )
+    
+    # Razões para excluir outliers
+    st.markdown("""
+    ### 🎯 **Por que excluir Outliers na análise?**
+    
+    **✅ Argumentos A FAVOR da exclusão:**
+    - **Análise mais representativa**: Remove casos extremos que distorcem a média
+    - **Comparação mais justa**: Avalia a capacidade consistente de cada franquia
+    - **Estratégia de negócios**: Foca na performance "típica" esperada
+    - **Reduz variabilidade**: Estatísticas mais estáveis e confiáveis
+    
+    **❌ Argumentos CONTRA a exclusão:**
+    - **Capacidade de criar sucessos**: Blockbusters fazem parte da estratégia
+    - **Realidade do mercado**: Sucessos extremos geram muito lucro
+    - **Gestão de risco**: Importante avaliar tanto sucessos quanto fracassos
+    - **Completude dos dados**: Todos os filmes fazem parte da história
+    
+    **🔧 Use o filtro acima para alternar entre as duas análises e tire suas próprias conclusões!**
+    """)
+
+else:
+    st.markdown("""
+    ### 📊 **Nenhum Outlier Detectado**
+    
+    Usando o método IQR (Interquartile Range), não foram identificados outliers significativos 
+    nos dados de ROI. Isso significa que todos os filmes têm performance dentro do padrão 
+    estatisticamente esperado.
+    
+    **Possíveis razões:**
+    - Dataset pequeno (39 filmes)
+    - Distribuição relativamente uniforme dos ROIs
+    - Critério IQR pode ser conservador para este dataset
+    
+    💡 **Dica**: Mesmo sem outliers estatísticos, você pode observar filmes com ROI 
+    muito alto ou baixo nas tabelas "TOP 5" e "BOTTOM 5" acima.
+    """)
 
 # Estatísticas do dataset
 st.markdown('<div class="question-header">📈 Estatísticas do Dataset</div>', unsafe_allow_html=True)
@@ -578,3 +693,6 @@ with col3:
     lowest_roi = df.loc[df['ROI'].idxmin()]
     st.metric("Maior ROI", f"{highest_roi['Original_Title']} ({highest_roi['ROI']:.1%})")
     st.metric("Menor ROI", f"{lowest_roi['Original_Title']} ({lowest_roi['ROI']:.1%})")
+
+# Insights finais
+st.markdown('<div class="insight-text">📊 Análise baseada em dados reais de ROI (Retorno sobre Investimento) de filmes Marvel e DC. ROI = (Receita Mundial - Orçamento) / Orçamento. Dataset com 39 filmes desde 2004.</div>', unsafe_allow_html=True)

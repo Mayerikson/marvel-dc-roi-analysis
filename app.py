@@ -1,219 +1,74 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import warnings
-warnings.filterwarnings('ignore')
 
-# Configuração da página
-st.set_page_config(
-    page_title="Marvel vs DC: Análise de ROI",
-    page_icon="🦸",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Load dataset
+df = pd.read_csv("db.csv")
 
-# CSS customizado minimalista
-st.markdown("""
-<style>
-    :root {
-        --marvel-red: #ED1D24;
-        --dc-blue: #0078F0;
-        --neutral: #2E2E2E;
-    }
-    
-    .stApp {
-        font-family: 'Arial', sans-serif;
-    }
-    
-    .header-marvel {
-        color: var(--marvel-red);
-        border-left: 5px solid var(--marvel-red);
-        padding-left: 1rem;
-    }
-    
-    .header-dc {
-        color: var(--dc-blue);
-        border-left: 5px solid var(--dc-blue);
-        padding-left: 1rem;
-    }
-    
-    .metric-marvel {
-        border-left: 4px solid var(--marvel-red) !important;
-    }
-    
-    .metric-dc {
-        border-left: 4px solid var(--dc-blue) !important;
-    }
-    
-    .winner-section {
-        background: #FFF9C4;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border: 2px solid #FFD600;
-        margin: 1rem 0;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Remove unnamed column if exists
+df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
-# Header principal
-st.markdown("""
-<div style="text-align:center; margin-bottom:2rem;">
-    <h1 style="font-size:2.5rem;">🦸 MARVEL vs DC 🦇</h1>
-    <h3>Análise Financeira de Filmes (2004-2019)</h3>
-    <p style="color:var(--neutral);">Baseado em dados reais de orçamento e bilheteria</p>
-</div>
-""", unsafe_allow_html=True)
+# Remove rows with missing publisher or appearances
+df = df.dropna(subset=["publisher", "APPEARANCES"])
+df = df[df["publisher"].isin(["Marvel", "DC"])]
 
-# Função para detectar outliers
-def detect_outliers(df, column='ROI'):
-    Q1 = df[column].quantile(0.25)
-    Q3 = df[column].quantile(0.75)
-    IQR = Q3 - Q1
-    
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-    
-    df['Outlier'] = df[column].apply(
-        lambda x: 'Outlier' if (x < lower_bound) or (x > upper_bound) else 'Normal'
-    )
-    return df
+# Convert APPEARANCES to numeric
+df["APPEARANCES"] = pd.to_numeric(df["APPEARANCES"], errors="coerce")
 
-# Carregar dados
-@st.cache_data
-def load_data():
-    try:
-        df = pd.read_csv('db.csv')
-    except:
-        # Dados de fallback (mesmo conteúdo do CSV)
-        data = [
-            ["Iron Man","Marvel",7.9,79,126,2008,140000000,98618668,318604126,585366247],
-            ["The Incredible Hulk","Marvel",6.7,61,112,2008,150000000,55414050,134806913,263427551],
-            ["Joker","DC",8.7,59,122,2019,55000000,96202337,333204580,1060504580]
-        ]
-        df = pd.DataFrame(data, columns=[
-            'Original Title','Company','Rate','Metascore','Minutes','Release',
-            'Budget','Opening Weekend USA','Gross USA','Gross Worldwide'
-        ])
-    
-    # Processamento
-    df = df.rename(columns={'Original Title': 'Original_Title', 'Gross Worldwide': 'Gross_Worldwide'})
-    df['Budget'] = df['Budget'].astype(str).str.replace(' ', '').str.replace(',', '').astype(float)
-    df['Gross_Worldwide'] = df['Gross_Worldwide'].astype(str).str.replace(' ', '').str.replace(',', '').astype(float)
-    df['ROI'] = (df['Gross_Worldwide'] - df['Budget']) / df['Budget']
-    
-    # Categorias
-    df['Budget_Category'] = pd.cut(df['Budget'], 
-                                 bins=[0, 100e6, 200e6, float('inf')],
-                                 labels=['Baixo (<$100M)', 'Médio ($100M-$200M)', 'Alto (>$200M)'])
-    
-    # Identificar sequências
-    sequel_keywords = ['2', '3', 'II', 'III', 'Age of', 'Civil War', 'Dark World']
-    df['Is_Sequel'] = df['Original_Title'].apply(lambda x: int(any(kw in str(x) for kw in sequel_keywords)))
-    
-    return df
+st.set_page_config(page_title="Marvel vs DC Dashboard", layout="wide")
 
-df = load_data()
-df = detect_outliers(df)
+st.title("📊 Marvel vs DC Comics Dashboard")
+st.markdown("A comparison of characters from **Marvel** and **DC** based on appearance data and attributes.")
 
-# Sidebar
-st.sidebar.header("🔧 Controles")
-companies = st.sidebar.multiselect(
-    "Selecionar Franquias:",
-    options=df['Company'].unique(),
-    default=df['Company'].unique()
-)
+# Sidebar filters
+st.sidebar.header("Filters")
+min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
+year_range = st.sidebar.slider("Select Year Range", min_year, max_year, (1960, 2020))
+alignment = st.sidebar.multiselect("Character Alignment", options=df["ALIGN"].dropna().unique(), default=df["ALIGN"].dropna().unique())
 
-show_outliers = st.sidebar.checkbox("Mostrar outliers", value=True)
+# Filter data
+df_filtered = df[(df["Year"] >= year_range[0]) & (df["Year"] <= year_range[1])]
+if alignment:
+    df_filtered = df_filtered[df_filtered["ALIGN"].isin(alignment)]
 
-# Estatísticas rápidas na sidebar
-marvel_count = len(df[df['Company'] == 'Marvel'])
-dc_count = len(df[df['Company'] == 'DC'])
-st.sidebar.markdown(f"""
-**📊 Estatísticas:**
-- Marvel: {marvel_count} filmes
-- DC: {dc_count} filmes
-- Período: {df['Release'].min()} - {df['Release'].max()}
-""")
-
-# Filtrar dados
-if not companies:
-    st.error("Selecione pelo menos uma franquia na sidebar")
-    st.stop()
-
-df_filtered = df[df['Company'].isin(companies)]
-if not show_outliers:
-    df_filtered = df_filtered[df_filtered['Outlier'] == 'Normal']
-
-# Métricas principais
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total de Filmes", len(df_filtered))
-with col2:
-    st.metric("ROI Médio", f"{df_filtered['ROI'].mean():.1%}")
-with col3:
-    st.metric("Bilheteria Total", f"${df_filtered['Gross_Worldwide'].sum()/1e9:.1f}B")
-
-# Análise por franquia
-st.markdown("## 🏆 ROI por Franquia")
-roi_stats = df_filtered.groupby('Company')['ROI'].agg(['mean', 'count']).sort_values('mean', ascending=False)
-fig = px.bar(roi_stats, x=roi_stats.index, y='mean', color=roi_stats.index,
-             color_discrete_map={'Marvel': '#ED1D24', 'DC': '#0078F0'})
-st.plotly_chart(fig, use_container_width=True)
-
-# Top filmes
-st.markdown("## 🎬 Top Filmes por ROI")
-top5 = df_filtered.nlargest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
-bottom5 = df_filtered.nsmallest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
-
+# Layout: 2 columns
 col1, col2 = st.columns(2)
+
 with col1:
-    st.markdown("### 🏅 Melhores Performances")
-    st.dataframe(top5.style.format({
-        'ROI': '{:.1%}',
-        'Budget': '${:,.0f}',
-        'Gross_Worldwide': '${:,.0f}'
-    }), hide_index=True)
+    appearances_plot = df_filtered.groupby("publisher")["APPEARANCES"].sum().reset_index()
+    fig1 = px.bar(appearances_plot, x="publisher", y="APPEARANCES", color="publisher",
+                  title="Total Appearances by Publisher", text_auto=True)
+    st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
-    st.markdown("### ⚠️ Piores Performances")
-    st.dataframe(bottom5.style.format({
-        'ROI': '{:.1%}',
-        'Budget': '${:,.0f}',
-        'Gross_Worldwide': '${:,.0f}'
-    }), hide_index=True)
+    count_plot = df_filtered["publisher"].value_counts().reset_index()
+    count_plot.columns = ["publisher", "Count"]
+    fig2 = px.pie(count_plot, names="publisher", values="Count", title="Character Count by Publisher")
+    st.plotly_chart(fig2, use_container_width=True)
 
-# Análise temporal
-st.markdown("## 📈 Evolução do ROI ao Longo do Tempo")
-temp_df = df_filtered.groupby(['Release', 'Company'])['ROI'].mean().reset_index()
-fig = px.line(temp_df, x='Release', y='ROI', color='Company', 
-              color_discrete_map={'Marvel': '#ED1D24', 'DC': '#0078F0'})
-st.plotly_chart(fig, use_container_width=True)
+# Additional insights
+st.subheader("🧬 Character Attributes")
 
-# Vencedor
-st.markdown("## 🏁 Vencedor")
-marvel_roi = df[df['Company'] == 'Marvel']['ROI'].mean()
-dc_roi = df[df['Company'] == 'DC']['ROI'].mean()
+tab1, tab2, tab3 = st.tabs(["Eye Color", "Hair Color", "Sex"])
 
-if marvel_roi > dc_roi:
-    st.markdown(f"""
-    <div class="winner-section">
-        <h2 style="color:var(--marvel-red);">MARVEL VENCE!</h2>
-        <p>ROI médio: {marvel_roi:.1%} vs DC: {dc_roi:.1%}</p>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
-    <div class="winner-section">
-        <h2 style="color:var(--dc-blue);">DC VENCE!</h2>
-        <p>ROI médio: {dc_roi:.1%} vs Marvel: {marvel_roi:.1%}</p>
-    </div>
-    """, unsafe_allow_html=True)
+with tab1:
+    eye_plot = df_filtered.groupby(["publisher", "EYE"]).size().reset_index(name="count")
+    fig3 = px.bar(eye_plot, x="EYE", y="count", color="publisher", barmode="group",
+                  title="Eye Color Distribution")
+    st.plotly_chart(fig3, use_container_width=True)
 
-# Detalhes técnicos
+with tab2:
+    hair_plot = df_filtered.groupby(["publisher", "HAIR"]).size().reset_index(name="count")
+    fig4 = px.bar(hair_plot, x="HAIR", y="count", color="publisher", barmode="group",
+                  title="Hair Color Distribution")
+    st.plotly_chart(fig4, use_container_width=True)
+
+with tab3:
+    sex_plot = df_filtered.groupby(["publisher", "SEX"]).size().reset_index(name="count")
+    fig5 = px.bar(sex_plot, x="SEX", y="count", color="publisher", barmode="group",
+                  title="Sex Distribution")
+    st.plotly_chart(fig5, use_container_width=True)
+
+# Footer
 st.markdown("---")
-st.markdown(f"""
-**📝 Notas Metodológicas:**
-- ROI calculado como: (Bilheteria Mundial - Orçamento) / Orçamento  
-- Dados coletados de fontes públicas (IMDB, Box Office Mojo)  
-- Análise considera {len(df)} filmes (Marvel: {marvel_count}, DC: {dc_count})  
-""")
+st.markdown("Developed by [Your Name]. Data source: [FiveThirtyEight](https://github.com/fivethirtyeight/data/tree/master/comic-characters)")

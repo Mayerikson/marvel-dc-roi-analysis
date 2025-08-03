@@ -528,24 +528,35 @@ st.markdown("""
 <div style="background: linear-gradient(135deg, #F0F8FF, #E6F3FF); padding: 2rem; border-radius: 15px; border-left: 5px solid #4169E1; margin: 2rem 0;">
     <h2>🤔 Mas afinal, o que é ROI?</h2>
     <p><strong>ROI significa "Return on Investment" (Retorno sobre Investimento)</strong></p>
-    
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="background: #FFFFFF; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; border: 2px solid #4169E1;">
     <h3>📊 Fórmula Simples:</h3>
-    <p style="font-size: 1.2em; background: #FFF; padding: 1rem; border-radius: 10px; text-align: center;">
-        <strong>ROI = (Dinheiro Ganho - Dinheiro Investido) ÷ Dinheiro Investido</strong>
-    </p>
-    
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="font-size: 1.3em; background: #FFD700; padding: 1.5rem; border-radius: 10px; text-align: center; color: #333; font-weight: bold; margin: 1rem 0;">
+    ROI = (Dinheiro Ganho - Dinheiro Investido) ÷ Dinheiro Investido
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="background: #F8F9FA; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28A745;">
     <h3>🎬 Exemplo Prático no Cinema:</h3>
-    <ul>
-        <li>💰 <strong>Investimento:</strong> Estúdio gasta $100 milhões para fazer um filme</li>
-        <li>🎟️ <strong>Retorno:</strong> Filme arrecada $300 milhões no mundo todo</li>
-        <li>📈 <strong>ROI:</strong> (300 - 100) ÷ 100 = 2.0 (ou 200%)</li>
-        <li>✨ <strong>Significado:</strong> Para cada $1 investido, o estúdio ganhou $2 de lucro!</li>
-    </ul>
-    
-    <div style="background: #FFD700; color: #333; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
-        <strong>🎯 Por que ROI é importante?</strong><br>
-        Mostra qual franquia é mais eficiente em transformar dinheiro investido em lucro!
-    </div>
+    <p>💰 <strong>Investimento:</strong> Estúdio gasta $100 milhões para fazer um filme</p>
+    <p>🎟️ <strong>Retorno:</strong> Filme arrecada $300 milhões no mundo todo</p>
+    <p>📈 <strong>ROI:</strong> (300 - 100) ÷ 100 = 2.0 (ou 200%)</p>
+    <p>✨ <strong>Significado:</strong> Para cada $1 investido, o estúdio ganhou $2 de lucro!</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="background: #FFD700; color: #333; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; text-align: center; font-size: 1.1em;">
+    <strong>🎯 Por que ROI é importante?</strong><br>
+    Mostra qual franquia é mais eficiente em transformar dinheiro investido em lucro!
 </div>
 """, unsafe_allow_html=True)
 
@@ -575,16 +586,22 @@ if winner_with == winner_without:
             Isso significa que <strong>{winner_with}</strong> tem uma vantagem consistente e confiável no ROI, 
             independentemente de incluirmos ou não casos extremos na análise.
         </p>
-        
-        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px; margin: 2rem 0;">
-            <h3>💡 Recomendação Final para Investidores:</h3>
-            <p style="font-size: 1.2em;">
-                Com base na análise de ROI histórico, investimentos em <strong>{winner_with}</strong> 
-                demonstraram maior retorno consistente sobre o investimento. 
-                <br><br>
-                🎯 <strong>Confiabilidade:</strong> Vence tanto com quanto sem outliers!<br>
-                📈 <strong>Estratégia:</strong> Franquia mais segura para investimentos futuros!
-            </p>
+    </div>
+    """
+    
+    # Adicionar recomendação separadamente
+    recommendation_text = f"""
+    <div style="background: rgba(255,255,255,0.95); padding: 2rem; border-radius: 15px; margin: 2rem 0; border: 3px solid #FFD700; color: #333;">
+        <h3 style="color: #333;">💡 Recomendação Final para Investidores:</h3>
+        <p style="font-size: 1.2em; color: #333;">
+            Com base na análise de ROI histórico, investimentos em <strong>{winner_with}</strong> 
+            demonstraram maior retorno consistente sobre o investimento.
+        </p>
+        <div style="background: #28A745; color: white; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
+            <p style="margin: 0;"><strong>🎯 Confiabilidade:</strong> Vence tanto com quanto sem outliers!</p>
+        </div>
+        <div style="background: #17A2B8; color: white; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
+            <p style="margin: 0;"><strong>📈 Estratégia:</strong> Franquia mais segura para investimentos futuros!</p>
         </div>
     </div>
     """
@@ -629,6 +646,10 @@ else:
     """
 
 st.markdown(conclusion_text, unsafe_allow_html=True)
+
+# Renderizar recomendação separadamente para resultado consistente
+if winner_with == winner_without:
+    st.markdown(recommendation_text, unsafe_allow_html=True)
 
 if not include_outliers:
     st.success("""

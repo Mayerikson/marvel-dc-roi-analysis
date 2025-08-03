@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from io import BytesIO
-import numpy as np
 
 # Configuração da página
 st.set_page_config(
@@ -29,41 +28,36 @@ st.markdown("""
         padding: 1rem;
         border-radius: 10px;
         color: white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .dc-card {
         background: linear-gradient(135deg, #0078F0, #4A90E2);
         padding: 1rem;
         border-radius: 10px;
         color: white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .winner-card {
         background: linear-gradient(135deg, #FFD700, #FFA500);
         padding: 1rem;
         border-radius: 10px;
-        color: #333;
         text-align: center;
         font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .outlier-card {
         background: linear-gradient(135deg, #FF6347, #FF4500);
         padding: 1rem;
         border-radius: 10px;
         color: white;
-        margin-bottom: 1rem;
     }
     .footer {
         background: linear-gradient(90deg, #E23636 0%, #0078F0 100%);
-        padding: 2rem;
+        padding: 1rem;
         border-radius: 10px;
         color: white;
         text-align: center;
-        margin-top: 3rem;
+        margin-top: 2rem;
     }
     .stMetric {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255,255,255,0.9);
         padding: 1rem;
         border-radius: 10px;
         border-left: 5px solid #FFD700;
@@ -76,10 +70,6 @@ st.markdown("""
     .winner-metric {
         animation: pulse 2s infinite;
     }
-    /* Customizar sidebar */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #f0f2f6 0%, #e8eaf0 100%);
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -87,8 +77,8 @@ st.markdown("""
 st.markdown("""
 <div class="main-header">
     <h1>🎬 MARVEL vs DC: ROI ANALYSIS 🏆</h1>
-    <h3>Análise de Retorno sobre Investimento com Tratamento de Outliers</h3>
-    <p><em>"Dados não mentem - descubra qual franquia entrega melhor ROI!"</em></p>
+    <h3>Respostas às perguntas de negócio com controle de outliers</h3>
+    <p><em>"Dados precisos para decisões estratégicas"</em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -109,7 +99,7 @@ def detect_outliers(df, column='ROI'):
 @st.cache_data
 def load_data():
     # Carregue seu arquivo CSV aqui
-    # data = pd.read_csv('db.csv')
+    # df = pd.read_csv('db.csv')
     
     # Dados de exemplo (substitua pelo seu CSV real)
     data = {
@@ -155,15 +145,14 @@ def load_data():
     # Classificar tipo de filme
     sequel_keywords = ['2', '3', 'II', 'III', 'Age of', 'Civil War', 'Endgame', 'Infinity', 'v Superman']
     df['Tipo_Filme'] = df['Original_Title'].apply(
-        lambda x: 'Sequência/Continuação' if any(keyword in str(x) for keyword in sequel_keywords) 
-        else 'Filme de Origem'
+        lambda x: 'Sequência' if any(keyword in str(x) for keyword in sequel_keywords) else 'Origem'
     )
     
-    # Classificar faixa de orçamento
+    # Faixa de orçamento
     df['Faixa_Orcamento'] = pd.cut(
         df['Budget'],
         bins=[0, 100000000, 200000000, float('inf')],
-        labels=['Baixo (< $100M)', 'Médio ($100M-200M)', 'Alto (> $200M)']
+        labels=['Baixo (<$100M)', 'Médio ($100M-$200M)', 'Alto (>$200M)']
     )
     
     return df
@@ -171,16 +160,16 @@ def load_data():
 df = load_data()
 
 # Sidebar com filtros
-st.sidebar.header('⚙️ Configurações de Análise')
+st.sidebar.header('⚙️ Controle de Análise')
 
 # Opção para incluir/excluir outliers
 include_outliers = st.sidebar.checkbox(
-    'Incluir outliers (ex: Joker)',
+    'Incluir outliers (como Joker)',
     value=False,
-    help="Outliers podem distorcer a análise. Recomendado desmarcar para análise principal."
+    help="Outliers podem distorcer significativamente os resultados. Recomendado desativar para análise principal."
 )
 
-# Filtros interativos
+# Filtros adicionais
 selected_companies = st.sidebar.multiselect(
     'Selecione as Franquias',
     options=df['Company'].unique(),
@@ -194,36 +183,22 @@ year_range = st.sidebar.slider(
     value=(int(df['Release'].min()), int(df['Release'].max()))
 )
 
-movie_types = st.sidebar.multiselect(
-    'Tipo de Filme',
-    options=df['Tipo_Filme'].unique(),
-    default=df['Tipo_Filme'].unique()
-)
-
-budget_ranges = st.sidebar.multiselect(
-    'Faixa de Orçamento',
-    options=df['Faixa_Orcamento'].unique(),
-    default=df['Faixa_Orcamento'].unique()
-)
-
 # Aplicar filtros
 filtered_df = df[
     (df['Company'].isin(selected_companies)) &
-    (df['Release'].between(year_range[0], year_range[1])) &
-    (df['Tipo_Filme'].isin(movie_types)) &
-    (df['Faixa_Orcamento'].isin(budget_ranges))
+    (df['Release'].between(year_range[0], year_range[1]))
 ]
 
 if not include_outliers:
     filtered_df = filtered_df[filtered_df['Outlier'] == 'Normal']
 
-# Mostrar aviso sobre outliers excluídos
+# Mostrar aviso sobre outliers
 if not include_outliers and any(df['Outlier'] == 'Outlier'):
     outliers = df[df['Outlier'] == 'Outlier']
-    with st.expander("⚠️ Outliers Excluídos da Análise"):
+    with st.expander("⚠️ Outliers Excluídos"):
         st.markdown("""
         <div class="outlier-card">
-            <h3>Os seguintes filmes foram identificados como outliers:</h3>
+            <h3>Filmes identificados como outliers:</h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -236,126 +211,128 @@ if not include_outliers and any(df['Outlier'] == 'Outlier'):
             """, unsafe_allow_html=True)
         
         st.info("""
-        Estes filmes foram automaticamente identificados como valores extremos que podem distorcer a análise. 
-        Você pode incluí-los marcando a opção "Incluir outliers" na sidebar.
+        Estes filmes têm valores de ROI extremamente altos ou baixos que podem distorcer a análise.
+        Para incluí-los, marque a opção "Incluir outliers" na sidebar.
         """)
 
-# Métricas principais
-st.header("📊 Métricas Principais")
+## Respostas às Perguntas de Negócio
 
-col1, col2, col3, col4 = st.columns(4)
+# 1. Qual franquia tem melhor ROI médio?
+st.header("1️⃣ Qual franquia tem melhor ROI médio?")
+
+roi_comparison = filtered_df.groupby('Company')['ROI'].agg(['mean', 'count']).reset_index()
+roi_comparison.columns = ['Franquia', 'ROI Médio', 'Número de Filmes']
+
+col1, col2 = st.columns([3, 1])
 
 with col1:
-    avg_roi = filtered_df['ROI'].mean()
-    st.metric("ROI Médio", f"{avg_roi:.2f}")
+    fig = px.bar(
+        roi_comparison,
+        x='Franquia',
+        y='ROI Médio',
+        color='Franquia',
+        color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
+        text='ROI Médio',
+        title="ROI Médio por Franquia"
+    )
+    fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+    st.plotly_chart(fig, use_container_width=True)
 
 with col2:
-    total_movies = len(filtered_df)
-    st.metric("Filmes Analisados", total_movies)
+    winner = roi_comparison.loc[roi_comparison['ROI Médio'].idxmax()]
+    st.markdown(f"""
+    <div class="winner-card">
+        <h3>🏆 Vencedor</h3>
+        <h2>{winner['Franquia']}</h2>
+        <p>ROI Médio: {winner['ROI Médio']:.2f}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-with col3:
-    max_roi = filtered_df['ROI'].max()
-    best_movie = filtered_df.loc[filtered_df['ROI'].idxmax(), 'Original_Title']
-    st.metric("Maior ROI", f"{max_roi:.2f}", best_movie)
+# 2. Como o ROI varia com o orçamento?
+st.header("2️⃣ Como o ROI varia com o orçamento?")
 
-with col4:
-    min_budget_high_roi = filtered_df[filtered_df['ROI'] > filtered_df['ROI'].median()]['Budget'].min()
-    st.metric("Menor Orçamento com ROI Acima da Mediana", f"${min_budget_high_roi/1e6:.1f}M")
+fig = px.scatter(
+    filtered_df,
+    x='Budget',
+    y='ROI',
+    color='Company',
+    size='Gross_Worldwide',
+    hover_name='Original_Title',
+    log_x=True,
+    color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
+    trendline="lowess",
+    title="Relação entre Orçamento e ROI"
+)
+st.plotly_chart(fig, use_container_width=True)
 
-# Análises em abas
-tab1, tab2, tab3 = st.tabs(["📈 Análise Comparativa", "💰 Relação Orçamento-ROI", "🎬 Detalhes por Filme"])
+# 3. Filmes de origem vs sequências
+st.header("3️⃣ Filmes de origem têm melhor ROI que sequências?")
 
-with tab1:
-    st.header("Comparativo entre Franquias")
-    
-    # ROI por empresa
-    fig1 = px.box(
-        filtered_df,
-        x='Company',
-        y='ROI',
-        color='Company',
-        color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
-        points="all",
-        hover_data=['Original_Title', 'Release', 'Budget'],
-        title="Distribuição de ROI por Franquia"
-    )
-    st.plotly_chart(fig1, use_container_width=True)
-    
-    # Evolução temporal
-    st.subheader("Evolução do ROI ao Longo dos Anos")
-    fig2 = px.line(
-        filtered_df.groupby(['Release', 'Company'])['ROI'].mean().reset_index(),
-        x='Release',
-        y='ROI',
-        color='Company',
-        color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
-        markers=True,
-        title="Tendência Anual do ROI"
-    )
-    st.plotly_chart(fig2, use_container_width=True)
+origin_vs_sequel = filtered_df.groupby(['Company', 'Tipo_Filme'])['ROI'].mean().reset_index()
 
-with tab2:
-    st.header("Relação entre Orçamento e ROI")
-    
-    # Gráfico de bolhas
-    fig3 = px.scatter(
-        filtered_df,
-        x='Budget',
-        y='ROI',
-        color='Company',
-        size='Gross_Worldwide',
-        hover_name='Original_Title',
-        log_x=True,
-        color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
-        title="Orçamento vs ROI (Tamanho pela Receita Mundial)"
-    )
-    st.plotly_chart(fig3, use_container_width=True)
-    
-    # ROI por faixa de orçamento
-    st.subheader("ROI Médio por Faixa de Orçamento")
-    fig4 = px.bar(
-        filtered_df.groupby(['Company', 'Faixa_Orcamento'])['ROI'].mean().reset_index(),
-        x='Faixa_Orcamento',
-        y='ROI',
-        color='Company',
-        barmode='group',
-        color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
-        title="Performance por Nível de Investimento"
-    )
-    st.plotly_chart(fig4, use_container_width=True)
+fig = px.bar(
+    origin_vs_sequel,
+    x='Company',
+    y='ROI',
+    color='Tipo_Filme',
+    barmode='group',
+    color_discrete_map={'Origem': '#FFD700', 'Sequência': '#87CEEB'},
+    title="ROI: Filmes de Origem vs Sequências"
+)
+st.plotly_chart(fig, use_container_width=True)
 
-with tab3:
-    st.header("Detalhes por Filme")
-    
-    # Tabela interativa
-    st.dataframe(
-        filtered_df.sort_values('ROI', ascending=False)[
-            ['Original_Title', 'Company', 'Release', 'Budget', 'Gross_Worldwide', 'ROI', 'Tipo_Filme']
-        ],
-        column_config={
-            "Budget": st.column_config.NumberColumn("Orçamento", format="$%.0f"),
-            "Gross_Worldwide": st.column_config.NumberColumn("Receita Mundial", format="$%.0f"),
-            "ROI": st.column_config.NumberColumn("ROI", format="%.2f"),
-            "Release": st.column_config.NumberColumn("Ano", format="%d")
-        },
-        hide_index=True,
-        use_container_width=True
-    )
-    
-    # Botão para download
-    csv = filtered_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Baixar Dados Filtrados (CSV)",
-        data=csv,
-        file_name='marvel_dc_roi_analysis.csv',
-        mime='text/csv'
-    )
+# 4. Evolução do ROI ao longo do tempo
+st.header("4️⃣ Como o ROI evoluiu ao longo dos anos?")
 
-# Footer
+fig = px.line(
+    filtered_df.groupby(['Release', 'Company'])['ROI'].mean().reset_index(),
+    x='Release',
+    y='ROI',
+    color='Company',
+    color_discrete_map={'Marvel': '#E23636', 'DC': '#0078F0'},
+    markers=True,
+    title="Evolução do ROI por Ano"
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# 5. Top 5 filmes por ROI
+st.header("5️⃣ Quais são os filmes com maior ROI?")
+
+top_movies = filtered_df.nlargest(5, 'ROI')[['Original_Title', 'Company', 'Release', 'ROI']]
+top_movies['ROI'] = top_movies['ROI'].round(2)
+
+st.dataframe(
+    top_movies,
+    column_config={
+        "Original_Title": "Título",
+        "Company": "Franquia",
+        "Release": "Ano",
+        "ROI": st.column_config.NumberColumn("ROI", format="%.2f")
+    },
+    hide_index=True,
+    use_container_width=True
+)
+
+# Conclusão final
+st.markdown("---")
+st.header("🎯 Conclusões Estratégicas")
+
+if not include_outliers:
+    st.success("""
+    **Análise sem outliers (recomendada):**
+    - Fornece uma visão mais representativa do desempenho típico das franquias
+    - Útil para planejamento estratégico e previsões
+    """)
+else:
+    st.warning("""
+    **Análise incluindo outliers:**
+    - Mostra casos excepcionais que podem distorcer as médias
+    - Útil para identificar oportunidades excepcionais ou riscos extremos
+    """)
+
 st.markdown("""
 <div class="footer">
-    <h3>🎬 MARVEL vs DC: ROI ANALYSIS</h3>
-    <p>Dashboard desenvolvido com Streamlit | Análise de dados financeiros de filmes</p>
-    <p><em>"O verdadeiro vencedor é aquele que entrega o melhor retorno!"</em></p>
+    <p>📊 Análise de ROI Marvel vs DC | Controle completo sobre outliers</p>
+    <p>💡 Dados atualizados em 2025 | Dashboard desenvolvido com Streamlit</p>
 </div>
 """, unsafe_allow_html=True)

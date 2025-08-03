@@ -1,4 +1,4 @@
-import streamlit as st
+mport streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -16,7 +16,7 @@ st.set_page_config(
 # CSS customizado com tema super-herói mais elaborado
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap');
+    @import url(\'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap\');
     
     /* Variáveis CSS para cores Marvel/DC */
     :root {
@@ -45,7 +45,7 @@ st.markdown("""
     
     /* Padrão de pontos tipo quadrinhos */
     .main .block-container::before {
-        content: '';
+        content: \'\';
         position: fixed;
         top: 0;
         left: 0;
@@ -77,11 +77,11 @@ st.markdown("""
         border: 4px solid var(--dc-gold);
         position: relative;
         overflow: hidden;
-        font-family: 'Orbitron', monospace;
+        font-family: \'Orbitron\', monospace;
     }
     
     .main-header::before {
-        content: '';
+        content: \'\';
         position: absolute;
         top: -50%;
         left: -50%;
@@ -141,11 +141,11 @@ st.markdown("""
         border: 3px solid var(--dc-gold);
         position: relative;
         overflow: hidden;
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
     }
     
     .marvel-card::before {
-        content: '⚡';
+        content: \'⚡\';
         position: absolute;
         top: 10px;
         right: 10px;
@@ -168,11 +168,11 @@ st.markdown("""
         border: 3px solid var(--dc-gold);
         position: relative;
         overflow: hidden;
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
     }
     
     .dc-card::before {
-        content: '🦇';
+        content: \'🦇\';
         position: absolute;
         top: 10px;
         right: 10px;
@@ -203,11 +203,11 @@ st.markdown("""
         border: 4px solid var(--marvel-red);
         position: relative;
         overflow: hidden;
-        font-family: 'Orbitron', monospace;
+        font-family: \'Orbitron\', monospace;
     }
     
     .winner-card::before {
-        content: '🏆';
+        content: \'🏆\';
         position: absolute;
         top: -20px;
         left: 50%;
@@ -236,11 +236,11 @@ st.markdown("""
             inset 0 1px 0 rgba(255,255,255,0.5);
         border-left: 6px solid var(--accent-green);
         position: relative;
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
     }
     
     .insight-card::before {
-        content: '💡';
+        content: \'💡\';
         position: absolute;
         top: 15px;
         right: 15px;
@@ -283,11 +283,11 @@ st.markdown("""
             inset 0 1px 0 rgba(255,255,255,0.2);
         border: 3px solid var(--dc-gold);
         position: relative;
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
     }
     
     .outlier-card::before {
-        content: '⚠️';
+        content: \'⚠️\';
         position: absolute;
         top: 10px;
         right: 10px;
@@ -318,11 +318,11 @@ st.markdown("""
         border: 4px solid var(--dc-gold);
         position: relative;
         overflow: hidden;
-        font-family: 'Orbitron', monospace;
+        font-family: \'Orbitron\', monospace;
     }
     
     .conclusion-card::before {
-        content: '';
+        content: \'\';
         position: absolute;
         top: 0;
         left: -100%;
@@ -357,7 +357,7 @@ st.markdown("""
             0 10px 30px rgba(0,0,0,0.3),
             inset 0 1px 0 rgba(255,255,255,0.2);
         border: 4px solid var(--hero-dark);
-        font-family: 'Orbitron', monospace;
+        font-family: \'Orbitron\', monospace;
         position: relative;
     }
     
@@ -462,7 +462,7 @@ st.markdown("""
         border-radius: 10px;
         font-weight: bold;
         transition: all 0.3s ease;
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
     }
     
     .stButton > button:hover {
@@ -472,19 +472,19 @@ st.markdown("""
     
     /* Checkbox e selectbox */
     .stCheckbox > label {
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
         font-weight: 500;
     }
     
     .stSelectbox > label {
-        font-family: 'Roboto', sans-serif;
+        font-family: \'Roboto\', sans-serif;
         font-weight: 500;
         color: var(--hero-dark);
     }
     
     /* Headers personalizados */
     h1, h2, h3 {
-        font-family: 'Orbitron', monospace;
+        font-family: \'Orbitron\', monospace;
         color: var(--hero-dark);
     }
     
@@ -512,45 +512,45 @@ st.markdown("""
 </style>
 
 <!-- Símbolos de fundo animados -->
-<div class="hero-symbol marvel-symbol">⚡</div>
-<div class="hero-symbol dc-symbol">🦇</div>
-<div class="hero-symbol extra-symbol-1">🛡️</div>
-<div class="hero-symbol extra-symbol-2">⭐</div>
+<div class=\"hero-symbol marvel-symbol\">⚡</div>
+<div class=\"hero-symbol dc-symbol\">🦇</div>
+<div class=\"hero-symbol extra-symbol-1\">🛡️</div>
+<div class=\"hero-symbol extra-symbol-2\">⭐</div>
 
-""", unsafe_allow_html=True)
+\"\"\", unsafe_allow_html=True)
 
 # Header principal épico
-st.markdown("""
-<div class="main-header">
+st.markdown(\"\"\"
+<div class=\"main-header\">
     <h1>🦸‍♂️ MARVEL vs DC: BATALHA DOS DADOS 🦸‍♀️</h1>
     <h3>Análise Estratégica de ROI com Insights Humanos</h3>
-    <p><em>"Quando os números contam histórias épicas - Desvendando os segredos do sucesso cinematográfico!"</em></p>
+    <p><em>\"Quando os números contam histórias épicas - Desvendando os segredos do sucesso cinematográfico!\"</em></p>
 </div>
-""", unsafe_allow_html=True)
+\"\"\", unsafe_allow_html=True)
 
 # Função para detectar outliers usando IQR
-def detect_outliers(df, column='ROI'):
+def detect_outliers(df, column=\'ROI\'):
     Q1 = df[column].quantile(0.25)
     Q3 = df[column].quantile(0.75)
     IQR = Q3 - Q1
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
     
-    df['Outlier'] = df[column].apply(
-        lambda x: 'Outlier' if (x < lower_bound) or (x > upper_bound) else 'Normal'
+    df[\'Outlier\'] = df[column].apply(
+        lambda x: \'Outlier\' if (x < lower_bound) or (x > upper_bound) else \'Normal\'
     )
     return df
 
 # Carregar e preparar dados
 @st.cache_data
 def load_data():
-    """
+    \"\"\"
     Carrega o dataset do Kaggle Marvel vs DC
     
     IMPORTANTE: Para usar seus dados reais, descomente a linha abaixo e 
     coloque o arquivo db.csv na mesma pasta do script:
     
-    df = pd.read_csv('db.csv')
+    df = pd.read_csv(\'db.csv\')
     
     O dataset original tem as seguintes colunas:
     - Original Title: Nome do filme
@@ -564,25 +564,21 @@ def load_data():
     - Genre: Gênero
     - Director: Diretor
     - Cast: Elenco principal
-    """
+    \"\"\"
     
     # Para demonstração, usando dados simulados baseados no dataset real
-    # SUBSTITUA por: df = pd.read_csv('db.csv') quando tiver o arquivo
+    # SUBSTITUA por: df = pd.read_csv(\'db.csv\') quando tiver o arquivo
     
     data = {
-        'Original_Title': [
-            # Marvel
-            'Iron Man', 'The Incredible Hulk', 'Iron Man 2', 'Thor', 'Captain America: The First Avenger',
-            'The Avengers', 'Iron Man Three', 'Thor: The Dark World', 'Captain America: The Winter Soldier',
-            'Guardians of the Galaxy', 'Avengers: Age of Ultron', 'Ant-Man', 'Captain America: Civil War',
-            'Doctor Strange', 'Guardians of the Galaxy Vol. 2', 'Spider-Man: Homecoming', 'Thor: Ragnarok',
-            'Black Panther', 'Avengers: Infinity War', 'Ant-Man and the Wasp', 'Captain Marvel',
-            'Avengers: Endgame', 'Spider-Man: Far From Home', 'Deadpool', 'Deadpool 2',
-            'Logan', 'X-Men: Days of Future Past', 'X-Men: Apocalypse', 'Venom',
-            # DC
-            'Man of Steel', 'Batman v Superman: Dawn of Justice', 'Suicide Squad', 'Wonder Woman',
-            'Justice League', 'Aquaman', 'Shazam!', 'Birds of Prey', 'Wonder Woman 1984',
-            'The Suicide Squad', 'The Batman', 'Black Adam'
-        ]},
-     
+        \'Original_Title\': [
+            # Marvel (29 filmes)
+            \'Iron Man\', \'The Incredible Hulk\', \'Iron Man 2\', \'Thor\', \'Captain America: The First Avenger\',
+            \'The Avengers\', \'Iron Man Three\', \'Thor: The Dark World\', \'Captain America: The Winter Soldier\',
+            \'Guardians of the Galaxy\', \'Avengers: Age of Ultron\', \'Ant-Man\', \'Captain America: Civil War\',
+            \'Doctor Strange\', \'Guardians of the Galaxy Vol. 2\', \'Spider-Man: Homecoming\', \'Thor: Ragnarok\',
+            \'Black Panther\', \'Avengers: Infinity War\', \'Ant-Man and the Wasp\', \'Captain Marvel\',
+            \'Avengers: Endgame\', \'Spider-Man: Far From Home\', \'Deadpool\', \'Deadpool 2\',
+            \'Logan\', \'X-Men: Days of Future Past\', \'X-Men: Apocalypse\', \'Venom\',
+            # DC (12 filmes)
+            \'Man of Steel\', \'Batman v Superman: Dawn of Justice\', \'Suicide Squad\', \'Wonder Wo
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)

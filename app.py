@@ -165,72 +165,64 @@ def detect_outliers(df, column='ROI'):
     )
     return df
 
-# Carregar dados simulados
+# Carregar dados reais
 @st.cache_data
 def load_data():
-    np.random.seed(42)
+    try:
+        # Tentativa de ler o arquivo CSV
+        df = pd.read_csv('db.csv')
+    except FileNotFoundError:
+        st.error("Arquivo 'db.csv' não encontrado. Por favor, certifique-se de que o arquivo está no diretório correto.")
+        # Fallback para dados de exemplo se o arquivo não for encontrado
+        data = {
+            'Original Title': ['Iron Man', 'The Dark Knight'],
+            'Company': ['Marvel', 'DC'],
+            'Rate': [7.9, 9.0],
+            'Metascore': [79, 84],
+            'Minutes': [126, 152],
+            'Release': [2008, 2008],
+            'Budget': [140000000, 185000000],
+            'Opening Weekend USA': [98618668, 158411483],
+            'Gross USA': [318604126, 535234033],
+            'Gross Worldwide': [585366247, 1004934033]
+        }
+        df = pd.DataFrame(data)
     
-    marvel_movies = [
-        'Iron Man', 'The Incredible Hulk', 'Iron Man 2', 'Thor', 'Captain America: The First Avenger',
-        'The Avengers', 'Iron Man Three', 'Thor: The Dark World', 'Captain America: The Winter Soldier',
-        'Guardians of the Galaxy', 'Avengers: Age of Ultron', 'Ant-Man', 'Captain America: Civil War',
-        'Doctor Strange', 'Guardians of the Galaxy Vol. 2', 'Spider-Man: Homecoming', 'Thor: Ragnarok',
-        'Black Panther', 'Avengers: Infinity War', 'Ant-Man and the Wasp', 'Captain Marvel',
-        'Avengers: Endgame', 'Spider-Man: Far From Home', 'Deadpool', 'Deadpool 2'
-    ]
+    # Limpeza e processamento dos dados
+    # Remover espaços extras e caracteres inválidos
+    for col in ['Budget', 'Gross Worldwide']:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.replace(' ', '').str.replace(',', '')
+            df[col] = pd.to_numeric(df[col], errors='coerce')
     
-    dc_movies = [
-        'Man of Steel', 'Batman v Superman: Dawn of Justice', 'Suicide Squad', 'Wonder Woman',
-        'Justice League', 'Aquaman', 'Shazam!', 'Birds of Prey', 'Wonder Woman 1984',
-        'The Suicide Squad', 'The Batman', 'Black Adam', 'The Flash', 'Blue Beetle', 'Joker'
-    ]
+    # Renomear colunas para padronização
+    column_mapping = {
+        'Original Title': 'Original_Title',
+        'Gross Worldwide': 'Gross_Worldwide'
+    }
+    df = df.rename(columns=column_mapping)
     
-    data = []
+    # Calcular ROI
+    df['ROI'] = (df['Gross_Worldwide'] - df['Budget']) / df['Budget']
     
-    # Marvel (ROI ligeiramente melhor)
-    for i, movie in enumerate(marvel_movies):
-        budget = np.random.uniform(60, 350) * 1000000
-        roi_multiplier = np.random.uniform(1.8, 6.5) if 'Avengers' in movie else np.random.uniform(1.4, 4.8)
-        gross = budget * roi_multiplier
-        roi = (gross - budget) / budget
-        
-        data.append({
-            'Original_Title': movie,
-            'Company': 'Marvel',
-            'Budget': budget,
-            'Gross_Worldwide': gross,
-            'ROI': roi,
-            'Release': np.random.randint(2008, 2024),
-            'Rate': np.random.uniform(6.8, 8.4),
-            'Is_Sequel': 1 if any(x in movie for x in ['2', '3', 'II', 'Age of', 'Civil War', 'Endgame', 'Infinity']) else 0
-        })
+    # Identificar sequências/continuações
+    sequel_indicators = ['2', '3', 'II', 'III', 'Age of', 'Civil War', 'Endgame', 'Infinity', 
+                        'v Superman', 'Dark World', 'Winter Soldier', 'Ragnarok', 'Returns',
+                        'Rises', 'Dawn of Justice']
     
-    # DC (ROI mais variável)
-    for i, movie in enumerate(dc_movies):
-        budget = np.random.uniform(70, 300) * 1000000
-        roi_multiplier = np.random.uniform(0.9, 5.2)
-        gross = budget * roi_multiplier
-        roi = (gross - budget) / budget
-        
-        data.append({
-            'Original_Title': movie,
-            'Company': 'DC',
-            'Budget': budget,
-            'Gross_Worldwide': gross,
-            'ROI': roi,
-            'Release': np.random.randint(2013, 2024),
-            'Rate': np.random.uniform(6.0, 8.1),
-            'Is_Sequel': 1 if any(x in movie for x in ['2', 'v Superman', '1984']) else 0
-        })
+    df['Is_Sequel'] = df['Original_Title'].apply(
+        lambda x: 1 if any(indicator in str(x) for indicator in sequel_indicators) else 0
+    )
     
-    df = pd.DataFrame(data)
-    
-    # Categorias
+    # Categorias de orçamento
     df['Budget_Category'] = pd.cut(df['Budget'], 
                                  bins=[0, 100_000_000, 200_000_000, float('inf')],
                                  labels=['Baixo (< $100M)', 'Médio ($100M-200M)', 'Alto (> $200M)'])
     
     df['Movie_Type'] = df['Is_Sequel'].apply(lambda x: 'Sequência/Continuação' if x else 'Filme de Origem')
+    
+    # Remover linhas com dados faltantes essenciais
+    df = df.dropna(subset=['Budget', 'Gross_Worldwide', 'ROI'])
     
     return df
 

@@ -2,513 +2,583 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
-from datetime import datetime
-import warnings
-warnings.filterwarnings('ignore')
+from io import BytesIO
+import random
 
 # Configuração da página
 st.set_page_config(
-    page_title="Marvel vs DC: Análise de ROI",
-    page_icon="🎭",
+    page_title="🦸‍♂️ Marvel vs DC: Análise de ROI",
+    page_icon="🎬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado focado em Marvel/DC
+# CSS customizado com tema super-herói mais elaborado
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url(\'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap\');
     
+    /* Variáveis CSS para cores Marvel/DC */
     :root {
         --marvel-red: #ED1D24;
         --marvel-blue: #518CCA;
+        --marvel-yellow: #F78F1E;
         --dc-blue: #0078F0;
-        --dc-dark: #003366;
-        --neutral: #2E2E2E;
+        --dc-red: #DC143C;
+        --dc-gold: #FFD700;
+        --hero-dark: #1E1E1E;
+        --hero-light: #F5F5F5;
+        --accent-green: #00FF41;
+        --accent-purple: #8A2BE2;
     }
     
+    /* Fundo principal com padrão de quadrinhos */
     .stApp {
         background: linear-gradient(135deg, 
-            rgba(237, 29, 36, 0.05) 0%, 
-            rgba(255, 255, 255, 0.95) 50%,
-            rgba(0, 120, 240, 0.05) 100%);
-        font-family: 'Roboto', sans-serif;
+            rgba(237, 29, 36, 0.03) 0%, 
+            rgba(255, 255, 255, 0.97) 25%,
+            rgba(0, 120, 240, 0.03) 50%,
+            rgba(255, 255, 255, 0.97) 75%,
+            rgba(237, 29, 36, 0.03) 100%);
+        background-attachment: fixed;
     }
     
+    /* Padrão de pontos tipo quadrinhos */
+    .main .block-container::before {
+        content: \'\';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            radial-gradient(circle at 25% 25%, rgba(237, 29, 36, 0.1) 2px, transparent 2px),
+            radial-gradient(circle at 75% 75%, rgba(0, 120, 240, 0.1) 2px, transparent 2px);
+        background-size: 50px 50px;
+        z-index: -1;
+        pointer-events: none;
+    }
+    
+    /* Header principal estilo quadrinhos */
     .main-header {
-        background: linear-gradient(90deg, var(--marvel-red) 0%, var(--dc-blue) 100%);
+        background: linear-gradient(45deg, 
+            var(--marvel-red) 0%, 
+            var(--marvel-yellow) 25%,
+            var(--dc-blue) 75%, 
+            var(--dc-gold) 100%);
         padding: 2rem;
-        border-radius: 15px;
+        border-radius: 20px;
         color: white;
         text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        box-shadow: 
+            0 10px 30px rgba(0,0,0,0.3),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 4px solid var(--dc-gold);
+        position: relative;
+        overflow: hidden;
+        font-family: \'Orbitron\', monospace;
+    }
+    
+    .main-header::before {
+        content: \'\';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255,255,255,0.1) 10px,
+            rgba(255,255,255,0.1) 20px
+        );
+        animation: heroShine 3s linear infinite;
+    }
+    
+    @keyframes heroShine {
+        0% { transform: translateX(-100%) translateY(-100%); }
+        100% { transform: translateX(100%) translateY(100%); }
     }
     
     .main-header h1 {
-        font-size: 2.2rem;
-        font-weight: 700;
+        font-size: 2.5rem;
+        font-weight: 900;
+        text-shadow: 3px 3px 0px rgba(0,0,0,0.5);
         margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
     }
     
-    .marvel-section {
-        background: linear-gradient(135deg, var(--marvel-red) 0%, #C41E3A 100%);
+    .main-header h3 {
+        font-size: 1.2rem;
+        font-weight: 400;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .main-header p {
+        font-style: italic;
+        font-size: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Cards temáticos melhorados */
+    .marvel-card {
+        background: linear-gradient(135deg, 
+            var(--marvel-red) 0%, 
+            #FF4757 50%,
+            var(--marvel-yellow) 100%);
         padding: 1.5rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 6px 20px rgba(237, 29, 36, 0.3);
-        margin-bottom: 1rem;
-    }
-    
-    .dc-section {
-        background: linear-gradient(135deg, var(--dc-blue) 0%, var(--dc-dark) 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 6px 20px rgba(0, 120, 240, 0.3);
-        margin-bottom: 1rem;
-    }
-    
-    .winner-section {
-        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-        padding: 2rem;
         border-radius: 15px;
+        color: white;
+        box-shadow: 
+            0 8px 25px rgba(237, 29, 36, 0.4),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 3px solid var(--dc-gold);
+        position: relative;
+        overflow: hidden;
+        font-family: \'Roboto\', sans-serif;
+    }
+    
+    .marvel-card::before {
+        content: \'⚡\';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 2rem;
+        opacity: 0.3;
+        animation: float 2s ease-in-out infinite;
+    }
+    
+    .dc-card {
+        background: linear-gradient(135deg, 
+            var(--dc-blue) 0%, 
+            #4A90E2 50%,
+            #2C5282 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        box-shadow: 
+            0 8px 25px rgba(0, 120, 240, 0.4),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 3px solid var(--dc-gold);
+        position: relative;
+        overflow: hidden;
+        font-family: \'Roboto\', sans-serif;
+    }
+    
+    .dc-card::before {
+        content: \'🦇\';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 2rem;
+        opacity: 0.3;
+        animation: float 2s ease-in-out infinite reverse;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    /* Card vencedor com animação */
+    .winner-card {
+        background: linear-gradient(135deg, 
+            var(--dc-gold) 0%, 
+            #FFA500 50%,
+            #FF8C00 100%);
+        padding: 2rem;
+        border-radius: 20px;
         text-align: center;
         font-weight: bold;
-        color: #1a1a1a;
-        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
-        margin: 2rem 0;
-        border: 3px solid #B8860B;
+        color: var(--hero-dark);
+        box-shadow: 
+            0 12px 35px rgba(255, 215, 0, 0.6),
+            inset 0 1px 0 rgba(255,255,255,0.3);
+        border: 4px solid var(--marvel-red);
+        position: relative;
+        overflow: hidden;
+        font-family: \'Orbitron\', monospace;
     }
     
-    .conclusion-section {
-        background: linear-gradient(135deg, #4A4A4A 0%, #2E2E2E 100%);
-        padding: 2rem;
+    .winner-card::before {
+        content: \'🏆\';
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 3rem;
+        animation: bounce 1s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateX(-50%) translateY(0px); }
+        50% { transform: translateX(-50%) translateY(-10px); }
+    }
+    
+    /* Cards de insight mais amigáveis */
+    .insight-card {
+        background: linear-gradient(135deg, 
+            #E8F5E8 0%, 
+            #F0FFF0 50%,
+            #E8F5E8 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: #2F4F2F;
+        margin: 1rem 0;
+        box-shadow: 
+            0 5px 20px rgba(152, 251, 152, 0.3),
+            inset 0 1px 0 rgba(255,255,255,0.5);
+        border-left: 6px solid var(--accent-green);
+        position: relative;
+        font-family: \'Roboto\', sans-serif;
+    }
+    
+    .insight-card::before {
+        content: \'💡\';
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1.5rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 0.7; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.1); }
+    }
+    
+    .insight-card h3 {
+        color: #228B22;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    
+    .insight-card ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .insight-card li {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+    }
+    
+    /* Card de outliers */
+    .outlier-card {
+        background: linear-gradient(135deg, 
+            #FF6B6B 0%, 
+            #FF5252 50%,
+            #F44336 100%);
+        padding: 1.5rem;
         border-radius: 15px;
         color: white;
+        box-shadow: 
+            0 8px 25px rgba(255, 107, 107, 0.4),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 3px solid var(--dc-gold);
+        position: relative;
+        font-family: \'Roboto\', sans-serif;
+    }
+    
+    .outlier-card::before {
+        content: \'⚠️\';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 1.5rem;
+        animation: shake 0.5s ease-in-out infinite;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+    }
+    
+    /* Card de conclusão épico */
+    .conclusion-card {
+        background: linear-gradient(135deg, 
+            var(--accent-purple) 0%, 
+            #9932CC 50%,
+            #8B008B 100%);
+        padding: 2.5rem;
+        border-radius: 20px;
+        color: white;
+        text-align: center;
         margin: 2rem 0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        box-shadow: 
+            0 15px 40px rgba(147, 112, 219, 0.5),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 4px solid var(--dc-gold);
+        position: relative;
+        overflow: hidden;
+        font-family: \'Orbitron\', monospace;
     }
     
-    .question-header {
-        background: linear-gradient(90deg, #F8F9FA 0%, #E9ECEF 100%);
-        padding: 1rem 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid var(--neutral);
-        margin: 1.5rem 0 1rem 0;
-        color: var(--neutral);
-        font-weight: 600;
-        font-size: 1.1rem;
+    .conclusion-card::before {
+        content: \'\';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(255,255,255,0.2), 
+            transparent);
+        animation: sweep 3s ease-in-out infinite;
     }
     
+    @keyframes sweep {
+        0% { left: -100%; }
+        50% { left: 100%; }
+        100% { left: 100%; }
+    }
+    
+    /* Footer heroico */
+    .footer {
+        background: linear-gradient(90deg, 
+            var(--marvel-red) 0%, 
+            var(--marvel-yellow) 25%,
+            var(--dc-blue) 75%, 
+            var(--dc-gold) 100%);
+        padding: 2rem;
+        border-radius: 20px;
+        color: white;
+        text-align: center;
+        margin-top: 2rem;
+        box-shadow: 
+            0 10px 30px rgba(0,0,0,0.3),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+        border: 4px solid var(--hero-dark);
+        font-family: \'Orbitron\', monospace;
+        position: relative;
+    }
+    
+    /* Métricas estilizadas */
     .stMetric {
-        background: rgba(255,255,255,0.9);
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        border-left: 4px solid #DDD;
+        background: linear-gradient(135deg, 
+            rgba(255,255,255,0.95) 0%, 
+            rgba(248,249,250,0.95) 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        border-left: 6px solid var(--dc-gold);
+        box-shadow: 
+            0 5px 15px rgba(0,0,0,0.1),
+            inset 0 1px 0 rgba(255,255,255,0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     
-    .metric-marvel {
-        border-left-color: var(--marvel-red) !important;
+    .stMetric:hover {
+        transform: translateY(-5px);
+        box-shadow: 
+            0 10px 25px rgba(0,0,0,0.2),
+            inset 0 1px 0 rgba(255,255,255,0.5);
     }
     
-    .metric-dc {
-        border-left-color: var(--dc-blue) !important;
+    /* Animação para métricas vencedoras */
+    .winner-metric {
+        animation: heroGlow 2s ease-in-out infinite;
+        border-left-color: var(--dc-gold);
     }
     
+    @keyframes heroGlow {
+        0%, 100% { 
+            box-shadow: 
+                0 5px 15px rgba(0,0,0,0.1),
+                0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        50% { 
+            box-shadow: 
+                0 8px 25px rgba(0,0,0,0.2),
+                0 0 30px rgba(255, 215, 0, 0.6);
+        }
+    }
+    
+    /* Símbolos de super-herói flutuantes */
+    .hero-symbol {
+        position: fixed;
+        opacity: 0.08;
+        font-size: 6rem;
+        z-index: -1;
+        color: var(--dc-gold);
+        animation: floatSlow 6s ease-in-out infinite;
+        pointer-events: none;
+    }
+    
+    .marvel-symbol {
+        top: 15%;
+        right: 8%;
+        animation-delay: 0s;
+    }
+    
+    .dc-symbol {
+        bottom: 15%;
+        left: 8%;
+        animation-delay: 3s;
+    }
+    
+    .extra-symbol-1 {
+        top: 60%;
+        right: 20%;
+        font-size: 4rem;
+        animation-delay: 1.5s;
+    }
+    
+    .extra-symbol-2 {
+        top: 30%;
+        left: 15%;
+        font-size: 5rem;
+        animation-delay: 4.5s;
+    }
+    
+    @keyframes floatSlow {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        33% { transform: translateY(-20px) rotate(5deg); }
+        66% { transform: translateY(10px) rotate(-3deg); }
+    }
+    
+    /* Sidebar customizada */
+    .css-1d391kg {
+        background: linear-gradient(180deg, 
+            rgba(237, 29, 36, 0.05) 0%, 
+            rgba(255, 255, 255, 0.95) 50%,
+            rgba(0, 120, 240, 0.05) 100%);
+    }
+    
+    /* Botões e controles */
+    .stButton > button {
+        background: linear-gradient(135deg, 
+            var(--marvel-red) 0%, 
+            var(--dc-blue) 100%);
+        color: white;
+        border: 2px solid var(--dc-gold);
+        border-radius: 10px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        font-family: \'Roboto\', sans-serif;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Checkbox e selectbox */
+    .stCheckbox > label {
+        font-family: \'Roboto\', sans-serif;
+        font-weight: 500;
+    }
+    
+    .stSelectbox > label {
+        font-family: \'Roboto\', sans-serif;
+        font-weight: 500;
+        color: var(--hero-dark);
+    }
+    
+    /* Headers personalizados */
     h1, h2, h3 {
-        color: var(--neutral);
+        font-family: \'Orbitron\', monospace;
+        color: var(--hero-dark);
     }
     
-    .insight-text {
-        background: #F8F9FA;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #28A745;
-        margin: 1rem 0;
-        color: #2E2E2E;
-        font-style: italic;
+    /* Dataframe customizado */
+    .stDataFrame {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .main-header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .hero-symbol {
+            font-size: 4rem;
+        }
+        
+        .winner-card, .conclusion-card {
+            padding: 1.5rem;
+        }
     }
 </style>
-""", unsafe_allow_html=True)
 
-# Header principal
-st.markdown("""
-<div class="main-header">
-    <h1>Marvel vs DC: Análise de ROI</h1>
-    <p>Quem é melhor nos negócios? Baseado em dados financeiros do IMDB</p>
+<!-- Símbolos de fundo animados -->
+<div class=\"hero-symbol marvel-symbol\">⚡</div>
+<div class=\"hero-symbol dc-symbol\">🦇</div>
+<div class=\"hero-symbol extra-symbol-1\">🛡️</div>
+<div class=\"hero-symbol extra-symbol-2\">⭐</div>
+
+\"\"\", unsafe_allow_html=True)
+
+# Header principal épico
+st.markdown(\"\"\"
+<div class=\"main-header\">
+    <h1>🦸‍♂️ MARVEL vs DC: BATALHA DOS DADOS 🦸‍♀️</h1>
+    <h3>Análise Estratégica de ROI com Insights Humanos</h3>
+    <p><em>\"Quando os números contam histórias épicas - Desvendando os segredos do sucesso cinematográfico!\"</em></p>
 </div>
-""", unsafe_allow_html=True)
+\"\"\", unsafe_allow_html=True)
 
-# Função para detectar outliers
-def detect_outliers(df, column='ROI'):
-    if df[column].empty or df[column].isna().all():
-        df['Outlier'] = 'Normal'
-        return df
-    
+# Função para detectar outliers usando IQR
+def detect_outliers(df, column=\'ROI\'):
     Q1 = df[column].quantile(0.25)
     Q3 = df[column].quantile(0.75)
     IQR = Q3 - Q1
-    
-    if IQR == 0:
-        df['Outlier'] = 'Normal'
-        return df
-    
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
     
-    df['Outlier'] = df[column].apply(
-        lambda x: 'Outlier' if (x < lower_bound) or (x > upper_bound) else 'Normal'
+    df[\'Outlier\'] = df[column].apply(
+        lambda x: \'Outlier\' if (x < lower_bound) or (x > upper_bound) else \'Normal\'
     )
     return df
 
-# Carregar dados simulados
+# Carregar e preparar dados
 @st.cache_data
 def load_data():
-    np.random.seed(42)
+    \"\"\"
+    Carrega o dataset do Kaggle Marvel vs DC
     
-    marvel_movies = [
-        'Iron Man', 'The Incredible Hulk', 'Iron Man 2', 'Thor', 'Captain America: The First Avenger',
-        'The Avengers', 'Iron Man Three', 'Thor: The Dark World', 'Captain America: The Winter Soldier',
-        'Guardians of the Galaxy', 'Avengers: Age of Ultron', 'Ant-Man', 'Captain America: Civil War',
-        'Doctor Strange', 'Guardians of the Galaxy Vol. 2', 'Spider-Man: Homecoming', 'Thor: Ragnarok',
-        'Black Panther', 'Avengers: Infinity War', 'Ant-Man and the Wasp', 'Captain Marvel',
-        'Avengers: Endgame', 'Spider-Man: Far From Home', 'Deadpool', 'Deadpool 2'
-    ]
+    IMPORTANTE: Para usar seus dados reais, descomente a linha abaixo e 
+    coloque o arquivo db.csv na mesma pasta do script:
     
-    dc_movies = [
-        'Man of Steel', 'Batman v Superman: Dawn of Justice', 'Suicide Squad', 'Wonder Woman',
-        'Justice League', 'Aquaman', 'Shazam!', 'Birds of Prey', 'Wonder Woman 1984',
-        'The Suicide Squad', 'The Batman', 'Black Adam', 'The Flash', 'Blue Beetle', 'Joker'
-    ]
+    df = pd.read_csv(\'db.csv\')
     
-    data = []
+    O dataset original tem as seguintes colunas:
+    - Original Title: Nome do filme
+    - Company: Marvel ou DC
+    - Rate: Nota IMDB
+    - Metascore: Pontuação Metacritic
+    - Budget: Orçamento
+    - Gross Worldwide: Receita mundial
+    - Release: Ano de lançamento
+    - Runtime: Duração
+    - Genre: Gênero
+    - Director: Diretor
+    - Cast: Elenco principal
+    \"\"\"
     
-    # Marvel (ROI ligeiramente melhor)
-    for i, movie in enumerate(marvel_movies):
-        budget = np.random.uniform(60, 350) * 1000000
-        roi_multiplier = np.random.uniform(1.8, 6.5) if 'Avengers' in movie else np.random.uniform(1.4, 4.8)
-        gross = budget * roi_multiplier
-        roi = (gross - budget) / budget
-        
-        data.append({
-            'Original_Title': movie,
-            'Company': 'Marvel',
-            'Budget': budget,
-            'Gross_Worldwide': gross,
-            'ROI': roi,
-            'Release': np.random.randint(2008, 2024),
-            'Rate': np.random.uniform(6.8, 8.4),
-            'Is_Sequel': 1 if any(x in movie for x in ['2', '3', 'II', 'Age of', 'Civil War', 'Endgame', 'Infinity']) else 0
-        })
+    # Para demonstração, usando dados simulados baseados no dataset real
+    # SUBSTITUA por: df = pd.read_csv(\'db.csv\') quando tiver o arquivo
     
-    # DC (ROI mais variável)
-    for i, movie in enumerate(dc_movies):
-        budget = np.random.uniform(70, 300) * 1000000
-        roi_multiplier = np.random.uniform(0.9, 5.2)
-        gross = budget * roi_multiplier
-        roi = (gross - budget) / budget
-        
-        data.append({
-            'Original_Title': movie,
-            'Company': 'DC',
-            'Budget': budget,
-            'Gross_Worldwide': gross,
-            'ROI': roi,
-            'Release': np.random.randint(2013, 2024),
-            'Rate': np.random.uniform(6.0, 8.1),
-            'Is_Sequel': 1 if any(x in movie for x in ['2', 'v Superman', '1984']) else 0
-        })
-    
-    df = pd.DataFrame(data)
-    
-    # Categorias
-    df['Budget_Category'] = pd.cut(df['Budget'], 
-                                 bins=[0, 100_000_000, 200_000_000, float('inf')],
-                                 labels=['Baixo (< $100M)', 'Médio ($100M-200M)', 'Alto (> $200M)'])
-    
-    df['Movie_Type'] = df['Is_Sequel'].apply(lambda x: 'Sequência/Continuação' if x else 'Filme de Origem')
-    
-    return df
-
-# Carregar dados
-df = load_data()
-df = detect_outliers(df)
-
-# Sidebar com controles
-st.sidebar.header("Controles da Análise")
-
-show_outliers = st.sidebar.checkbox("Incluir Outliers na análise", value=True)
-companies = st.sidebar.multiselect(
-    "Selecionar Franquias:", 
-    options=df['Company'].unique(), 
-    default=df['Company'].unique()
-)
-
-# Filtrar dados
-df_filtered = df[df['Company'].isin(companies)]
-if not show_outliers:
-    df_filtered = df_filtered[df_filtered['Outlier'] == 'Normal']
-
-# Análise com e sem outliers para conclusão
-df_no_outliers = df[df['Outlier'] == 'Normal']
-
-# Cores para gráficos
-color_map = {'Marvel': '#ED1D24', 'DC': '#0078F0'}
-
-# Dashboard Principal
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    total_movies = len(df_filtered)
-    st.metric("Total de Filmes", total_movies)
-
-with col2:
-    avg_roi = df_filtered['ROI'].mean()
-    st.metric("ROI Médio", f"{avg_roi:.1%}")
-
-with col3:
-    total_budget = df_filtered['Budget'].sum()
-    st.metric("Orçamento Total", f"${total_budget/1e9:.1f}B")
-
-with col4:
-    total_gross = df_filtered['Gross_Worldwide'].sum()
-    st.metric("Receita Total", f"${total_gross/1e9:.1f}B")
-
-# PERGUNTA 1
-st.markdown('<div class="question-header">1. Qual franquia tem maior ROI médio?</div>', unsafe_allow_html=True)
-
-roi_stats = df_filtered.groupby('Company').agg({
-    'ROI': ['mean', 'std', 'min', 'max', 'count'],
-    'Budget': 'mean',
-    'Gross_Worldwide': 'mean'
-}).round(3)
-
-roi_stats.columns = ['ROI_Médio', 'ROI_Desvio', 'ROI_Mínimo', 'ROI_Máximo', 'Total_Filmes', 'Orçamento_Médio', 'Receita_Média']
-roi_stats = roi_stats.sort_values('ROI_Médio', ascending=False)
-
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    fig_roi = px.bar(
-        x=roi_stats.index,
-        y=roi_stats['ROI_Médio'],
-        color=roi_stats.index,
-        color_discrete_map=color_map,
-        title="ROI Médio por Franquia"
-    )
-    fig_roi.update_layout(showlegend=False, height=400)
-    st.plotly_chart(fig_roi, use_container_width=True)
-
-with col2:
-    fig_box = px.box(
-        df_filtered, 
-        x='Company', 
-        y='ROI',
-        color='Company',
-        color_discrete_map=color_map,
-        title="Distribuição do ROI"
-    )
-    fig_box.update_layout(showlegend=False, height=400)
-    st.plotly_chart(fig_box, use_container_width=True)
-
-st.dataframe(roi_stats, use_container_width=True)
-
-# PERGUNTA 2
-st.markdown('<div class="question-header">2. Quais filmes deram mais e menos retorno?</div>', unsafe_allow_html=True)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("TOP 5 - Maiores ROI")
-    top_5 = df_filtered.nlargest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
-    top_5_display = top_5.copy()
-    top_5_display['ROI'] = top_5_display['ROI'].apply(lambda x: f"{x:.1%}")
-    top_5_display['Budget'] = top_5_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
-    top_5_display['Gross_Worldwide'] = top_5_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
-    st.dataframe(top_5_display, use_container_width=True, hide_index=True)
-
-with col2:
-    st.subheader("BOTTOM 5 - Menores ROI")
-    bottom_5 = df_filtered.nsmallest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
-    bottom_5_display = bottom_5.copy()
-    bottom_5_display['ROI'] = bottom_5_display['ROI'].apply(lambda x: f"{x:.1%}")
-    bottom_5_display['Budget'] = bottom_5_display['Budget'].apply(lambda x: f"${x/1e6:.0f}M")
-    bottom_5_display['Gross_Worldwide'] = bottom_5_display['Gross_Worldwide'].apply(lambda x: f"${x/1e6:.0f}M")
-    st.dataframe(bottom_5_display, use_container_width=True, hide_index=True)
-
-# PERGUNTA 3
-st.markdown('<div class="question-header">3. Filmes com menos dinheiro investido deram mais lucro?</div>', unsafe_allow_html=True)
-
-budget_analysis = df_filtered.groupby(['Budget_Category', 'Company']).agg({
-    'ROI': 'mean',
-    'Original_Title': 'count'
-}).round(3)
-budget_analysis.columns = ['ROI_Médio', 'Quantidade']
-budget_analysis = budget_analysis.reset_index()
-
-fig_budget = px.bar(
-    budget_analysis,
-    x='Budget_Category',
-    y='ROI_Médio',
-    color='Company',
-    barmode='group',
-    color_discrete_map=color_map,
-    title="ROI Médio por Faixa de Orçamento",
-    text='ROI_Médio'
-)
-fig_budget.update_traces(texttemplate='%{text:.1%}', textposition='outside')
-fig_budget.update_layout(height=500)
-st.plotly_chart(fig_budget, use_container_width=True)
-
-st.dataframe(budget_analysis, use_container_width=True, hide_index=True)
-
-# PERGUNTA 4
-st.markdown('<div class="question-header">4. Filmes de origem ganham mais que sequências?</div>', unsafe_allow_html=True)
-
-origin_analysis = df_filtered.groupby(['Movie_Type', 'Company']).agg({
-    'ROI': 'mean',
-    'Original_Title': 'count'
-}).round(3)
-origin_analysis.columns = ['ROI_Médio', 'Quantidade']
-origin_analysis = origin_analysis.reset_index()
-
-fig_origin = px.bar(
-    origin_analysis,
-    x='Movie_Type',
-    y='ROI_Médio',
-    color='Company',
-    barmode='group',
-    color_discrete_map=color_map,
-    title="ROI: Filmes de Origem vs Sequências",
-    text='ROI_Médio'
-)
-fig_origin.update_traces(texttemplate='%{text:.1%}', textposition='outside')
-fig_origin.update_layout(height=500)
-st.plotly_chart(fig_origin, use_container_width=True)
-
-st.dataframe(origin_analysis, use_container_width=True, hide_index=True)
-
-# PERGUNTA 5
-st.markdown('<div class="question-header">5. Como o ROI mudou ao longo do tempo?</div>', unsafe_allow_html=True)
-
-temporal_analysis = df_filtered.groupby(['Release', 'Company'])['ROI'].mean().reset_index()
-
-fig_temporal = px.line(
-    temporal_analysis,
-    x='Release',
-    y='ROI',
-    color='Company',
-    color_discrete_map=color_map,
-    title="Evolução do ROI por Ano",
-    markers=True
-)
-fig_temporal.update_layout(height=500)
-st.plotly_chart(fig_temporal, use_container_width=True)
-
-# Scatter plot
-fig_scatter = px.scatter(
-    df_filtered,
-    x='Budget',
-    y='Gross_Worldwide',
-    color='Company',
-    size='ROI',
-    hover_data=['Original_Title', 'Release'],
-    color_discrete_map=color_map,
-    title="Orçamento vs Receita (tamanho do ponto = ROI)",
-    labels={'Budget': 'Orçamento ($)', 'Gross_Worldwide': 'Receita Mundial ($)'}
-)
-fig_scatter.update_layout(height=500)
-st.plotly_chart(fig_scatter, use_container_width=True)
-
-# CONCLUSÃO FINAL
-st.markdown('<div class="question-header">CONCLUSÃO FINAL: QUEM É O VENCEDOR?</div>', unsafe_allow_html=True)
-
-# Análise com outliers
-roi_with_outliers = df.groupby('Company')['ROI'].mean().sort_values(ascending=False)
-winner_with = roi_with_outliers.index[0]
-roi_winner_with = roi_with_outliers.iloc[0]
-
-# Análise sem outliers
-roi_without_outliers = df_no_outliers.groupby('Company')['ROI'].mean().sort_values(ascending=False)
-winner_without = roi_without_outliers.index[0]
-roi_winner_without = roi_without_outliers.iloc[0]
-
-# Estatísticas comparativas
-marvel_stats_with = df[df['Company'] == 'Marvel']['ROI']
-dc_stats_with = df[df['Company'] == 'DC']['ROI']
-marvel_stats_without = df_no_outliers[df_no_outliers['Company'] == 'Marvel']['ROI']
-dc_stats_without = df_no_outliers[df_no_outliers['Company'] == 'DC']['ROI']
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("COM Outliers")
-    st.write(f"**Vencedor: {winner_with}**")
-    st.write(f"ROI Médio: {roi_winner_with:.1%}")
-    
-    stats_with = pd.DataFrame({
-        'Franquia': ['Marvel', 'DC'],
-        'ROI_Médio': [marvel_stats_with.mean(), dc_stats_with.mean()],
-        'Desvio_Padrão': [marvel_stats_with.std(), dc_stats_with.std()],
-        'Filmes': [len(marvel_stats_with), len(dc_stats_with)]
-    }).round(3)
-    st.dataframe(stats_with, hide_index=True)
-
-with col2:
-    st.subheader("SEM Outliers")
-    st.write(f"**Vencedor: {winner_without}**")
-    st.write(f"ROI Médio: {roi_winner_without:.1%}")
-    
-    stats_without = pd.DataFrame({
-        'Franquia': ['Marvel', 'DC'],
-        'ROI_Médio': [marvel_stats_without.mean(), dc_stats_without.mean()],
-        'Desvio_Padrão': [marvel_stats_without.std(), dc_stats_without.std()],
-        'Filmes': [len(marvel_stats_without), len(dc_stats_without)]
-    }).round(3)
-    st.dataframe(stats_without, hide_index=True)
-
-# Conclusão definitiva
-if winner_with == winner_without:
-    if winner_with == 'Marvel':
-        st.markdown(f"""
-        <div class="marvel-section">
-            <h3>VENCEDOR DEFINITIVO: MARVEL</h3>
-            <p><strong>Resultado consistente COM e SEM outliers</strong></p>
-            <p>• ROI médio com outliers: {roi_winner_with:.1%}</p>
-            <p>• ROI médio sem outliers: {roi_winner_without:.1%}</p>
-            <p><strong>Conclusão:</strong> A Marvel demonstra superioridade financeira consistente, 
-            independente da presença de filmes com performance extrema. Isso indica uma estratégia 
-            de negócios mais sólida e previsível.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="dc-section">
-            <h3>VENCEDOR DEFINITIVO: DC</h3>
-            <p><strong>Resultado consistente COM e SEM outliers</strong></p>
-            <p>• ROI médio com outliers: {roi_winner_with:.1%}</p>
-            <p>• ROI médio sem outliers: {roi_winner_without:.1%}</p>
-            <p><strong>Conclusão:</strong> A DC demonstra superioridade financeira consistente, 
-            independente da presença de filmes com performance extrema. Isso indica uma estratégia 
-            de negócios mais eficiente em termos de retorno sobre investimento.</p>
-        </div>
-        """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
-    <div class="conclusion-section">
-        <h3>RESULTADO DEPENDENTE DE OUTLIERS</h3>
-        <p><strong>Com outliers:</strong> {winner_with} vence com {roi_winner_with:.1%}</p>
-        <p><strong>Sem outliers:</strong> {winner_without} vence com {roi_winner_without:.1%}</p>
-        <p><strong>Conclusão:</strong> O resultado varia dependendo da inclusão de filmes com 
-        performance extrema. Isso sugere que uma das franquias possui alguns sucessos/fracassos 
-        excepcionais que influenciam significativamente a média geral. Para uma análise mais robusta, 
-        recomenda-se considerar o resultado SEM outliers: <strong>{winner_without}</strong>.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Insights finais
-st.markdown('<div class="insight-text">Insights baseados em análise de ROI (Retorno sobre Investimento) usando dados simulados baseados no dataset Marvel vs DC do Kaggle. ROI = (Receita - Orçamento) / Orçamento</div>', unsafe_allow_html=True)
+    data = {
+        \'Original_Title\': [
+            # Marvel (29 filmes)
+            \'Iron Man\', \'The Incredible Hulk\', \'Iron Man 2\', \'Thor\', \'Captain America: The First Avenger\',
+            \'The Avengers\', \'Iron Man Three\', \'Thor: The Dark World\', \'Captain America: The Winter Soldier\',
+            \'Guardians of the Galaxy\', \'Avengers: Age of Ultron\', \'Ant-Man\', \'Captain America: Civil War\',
+            \'Doctor Strange\', \'Guardians of the Galaxy Vol. 2\', \'Spider-Man: Homecoming\', \'Thor: Ragnarok\',
+            \'Black Panther\', \'Avengers: Infinity War\', \'Ant-Man and the Wasp\', \'Captain Marvel\',
+            \'Avengers: Endgame\', \'Spider-Man: Far From Home\', \'Deadpool\', \'Deadpool 2\',
+            \'Logan\', \'X-Men: Days of Future Past\', \'X-Men: Apocalypse\', \'Venom\',
+            # DC (12 filmes)
+            \'Man of Steel\', \'Batman v Superman: Dawn of Justice\', \'Suicide Squad\', \'Wonder Wo
+(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)

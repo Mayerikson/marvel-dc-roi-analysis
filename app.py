@@ -2,77 +2,104 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# Configuração da página
+st.set_page_config(page_title="Marvel vs DC: ROI Analysis", page_icon="🦸", layout="wide")
 
-# Tente com latin1 primeiro
+# Título principal
+st.title("🦸 Marvel vs DC: ROI Analysis")
+st.markdown("Análise dos filmes com base no Retorno sobre Investimento (ROI)")
+
+# Leitura dos dados com encoding corrigido
 try:
     df = pd.read_csv("db.csv", encoding="latin1")
 except UnicodeDecodeError:
     df = pd.read_csv("db.csv", encoding="cp1252")
 
-# Remove unnamed column if exists
-df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+# Tratamento dos dados
+df = df.rename(columns=lambda x: x.strip())
+df.columns = [col.replace("�", " ") for col in df.columns]
 
-# Remove rows with missing publisher or appearances
-df = df.dropna(subset=["publisher", "APPEARANCES"])
-df = df[df["publisher"].isin(["Marvel", "DC"])]
+df['Budget'] = pd.to_numeric(df['Budget'], errors='coerce')
+df['Gross_Worldwide'] = pd.to_numeric(df['Gross_Worldwide'], errors='coerce')
+df['ROI'] = (df['Gross_Worldwide'] - df['Budget']) / df['Budget']
+df = df.dropna(subset=['ROI', 'Budget', 'Gross_Worldwide'])
 
-# Convert APPEARANCES to numeric
-df["APPEARANCES"] = pd.to_numeric(df["APPEARANCES"], errors="coerce")
+# Categorização por orçamento
+df['Faixa_Orcamento'] = pd.cut(df['Budget'], 
+    bins=[0, 100_000_000, 200_000_000, float('inf')],
+    labels=['Baixo (< $100M)', 'Médio ($100M-$200M)', 'Alto (> $200M)']
+)
 
-st.set_page_config(page_title="Marvel vs DC Dashboard", layout="wide")
+# Classificação se é continuação ou origem
+sequels = ['2', '3', 'II', 'III', 'Four', 'Age of', 'Civil War', 'Endgame', 'Infinity']
+df['Tipo_Filme'] = df['Original_Title'].apply(
+    lambda x: 'Sequência/Continuação' if any(s in str(x) for s in sequels) else 'Filme de Origem'
+)
 
-st.title("📊 Marvel vs DC Comics Dashboard")
-st.markdown("A comparison of characters from **Marvel** and **DC** based on appearance data and attributes.")
+# Filtros
+st.sidebar.header("Filtros")
+companies = st.sidebar.multiselect("Selecione as franquias:", df['Company'].unique(), default=df['Company'].unique())
+df_filtered = df[df['Company'].isin(companies)]
 
-# Sidebar filters
-st.sidebar.header("Filters")
-min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
-year_range = st.sidebar.slider("Select Year Range", min_year, max_year, (1960, 2020))
-alignment = st.sidebar.multiselect("Character Alignment", options=df["ALIGN"].dropna().unique(), default=df["ALIGN"].dropna().unique())
+# Métricas principais
+st.markdown("### 🎯 Métricas Gerais")
+col1, col2, col3 = st.columns(3)
+col1.metric("Total de Filmes", len(df_filtered))
+col2.metric("ROI Médio", f"{df_filtered['ROI'].mean():.1%}")
+col3.metric("Período", f"{int(df_filtered['Release'].min())} - {int(df_filtered['Release'].max())}")
 
-# Filter data
-df_filtered = df[(df["Year"] >= year_range[0]) & (df["Year"] <= year_range[1])]
-if alignment:
-    df_filtered = df_filtered[df_filtered["ALIGN"].isin(alignment)]
+# 1. Qual franquia tem maior ROI médio?
+st.subheader("1️⃣ ROI Médio por Franquia")
+roi_avg = df_filtered.groupby("Company")['ROI'].agg(['count', 'mean', 'min', 'max']).reset_index()
+roi_avg.columns = ['Franquia', 'Total de Filmes', 'ROI Médio', 'Menor ROI', 'Maior ROI']
+st.dataframe(roi_avg.style.format({'ROI Médio': '{:.1%}', 'Menor ROI': '{:.1%}', 'Maior ROI': '{:.1%}'}), use_container_width=True)
 
-# Layout: 2 columns
+fig1 = px.bar(roi_avg, x='Franquia', y='ROI Médio', color='Franquia', text='ROI Médio')
+st.plotly_chart(fig1, use_container_width=True)
+
+# 2. Top 5 maiores e menores ROI
+st.subheader("2️⃣ Top 5 Maiores e Menores ROI")
 col1, col2 = st.columns(2)
-
 with col1:
-    appearances_plot = df_filtered.groupby("publisher")["APPEARANCES"].sum().reset_index()
-    fig1 = px.bar(appearances_plot, x="publisher", y="APPEARANCES", color="publisher",
-                  title="Total Appearances by Publisher", text_auto=True)
-    st.plotly_chart(fig1, use_container_width=True)
+    top5 = df_filtered.nlargest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
+    st.markdown("### 🏆 Maiores ROI")
+    st.dataframe(top5.style.format({'ROI': '{:.1%}', 'Budget': '${:,.0f}', 'Gross_Worldwide': '${:,.0f}'}), use_container_width=True)
 
 with col2:
-    count_plot = df_filtered["publisher"].value_counts().reset_index()
-    count_plot.columns = ["publisher", "Count"]
-    fig2 = px.pie(count_plot, names="publisher", values="Count", title="Character Count by Publisher")
-    st.plotly_chart(fig2, use_container_width=True)
+    bottom5 = df_filtered.nsmallest(5, 'ROI')[['Original_Title', 'Company', 'ROI', 'Budget', 'Gross_Worldwide']]
+    st.markdown("### 😬 Menores ROI")
+    st.dataframe(bottom5.style.format({'ROI': '{:.1%}', 'Budget': '${:,.0f}', 'Gross_Worldwide': '${:,.0f}'}), use_container_width=True)
 
-# Additional insights
-st.subheader("🧬 Character Attributes")
+# 3. ROI por faixa de orçamento
+st.subheader("3️⃣ ROI por Faixa de Orçamento")
+roi_budget = df_filtered.groupby('Faixa_Orcamento').agg(
+    qtd_filmes=('ROI', 'count'),
+    ROI_medio=('ROI', 'mean'),
+    Orcamento_medio=('Budget', 'mean')
+).reset_index()
 
-tab1, tab2, tab3 = st.tabs(["Eye Color", "Hair Color", "Sex"])
+st.dataframe(roi_budget.style.format({'ROI_medio': '{:.1%}', 'Orcamento_medio': '${:,.0f}'}), use_container_width=True)
 
-with tab1:
-    eye_plot = df_filtered.groupby(["publisher", "EYE"]).size().reset_index(name="count")
-    fig3 = px.bar(eye_plot, x="EYE", y="count", color="publisher", barmode="group",
-                  title="Eye Color Distribution")
-    st.plotly_chart(fig3, use_container_width=True)
+fig2 = px.bar(roi_budget, x='Faixa_Orcamento', y='ROI_medio', text='ROI_medio', color='Faixa_Orcamento')
+st.plotly_chart(fig2, use_container_width=True)
 
-with tab2:
-    hair_plot = df_filtered.groupby(["publisher", "HAIR"]).size().reset_index(name="count")
-    fig4 = px.bar(hair_plot, x="HAIR", y="count", color="publisher", barmode="group",
-                  title="Hair Color Distribution")
-    st.plotly_chart(fig4, use_container_width=True)
+# 4. ROI por Tipo de Filme (Origem vs Continuação)
+st.subheader("4️⃣ ROI por Tipo de Filme")
+roi_tipo = df_filtered.groupby(['Tipo_Filme', 'Company']).agg(ROI_medio=('ROI', 'mean'), Total=('ROI', 'count')).reset_index()
 
-with tab3:
-    sex_plot = df_filtered.groupby(["publisher", "SEX"]).size().reset_index(name="count")
-    fig5 = px.bar(sex_plot, x="SEX", y="count", color="publisher", barmode="group",
-                  title="Sex Distribution")
-    st.plotly_chart(fig5, use_container_width=True)
+fig3 = px.bar(roi_tipo, x='Company', y='ROI_medio', color='Tipo_Filme', barmode='group', text='ROI_medio')
+st.plotly_chart(fig3, use_container_width=True)
 
-# Footer
+st.dataframe(roi_tipo.style.format({'ROI_medio': '{:.1%}'}), use_container_width=True)
+
+# 5. Evolução do ROI ao longo do tempo
+st.subheader("5️⃣ Evolução do ROI ao Longo dos Anos")
+roi_time = df_filtered.groupby(['Release', 'Company'])['ROI'].mean().reset_index()
+fig4 = px.line(roi_time, x='Release', y='ROI', color='Company', markers=True)
+st.plotly_chart(fig4, use_container_width=True)
+
+# Conclusão
 st.markdown("---")
-st.markdown("Developed by [Your Name]. Data source: [FiveThirtyEight](https://github.com/fivethirtyeight/data/tree/master/comic-characters)")
+st.markdown("✅ **Conclusão:**")
+roi_final = roi_avg.sort_values("ROI Médio", ascending=False).iloc[0]
+st.markdown(f"A franquia com maior ROI médio é **{roi_final['Franquia']}**, com retorno médio de **{roi_final['ROI Médio']:.1%}**.")

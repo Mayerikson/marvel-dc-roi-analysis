@@ -523,33 +523,112 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 
-# Conclusão geral
-conclusion_text = ""
-if winner_with == winner_without:
-    conclusion_text = f"""
-    <h2>🎉 RESULTADO CONSISTENTE!</h2>
-    <h3>{winner_with} vence em AMBOS os cenários!</h3>
-    <p>Isso significa que {winner_with} tem uma vantagem consistente e confiável no ROI, 
-    independentemente de incluirmos ou não casos extremos na análise.</p>
-    """
-else:
-    conclusion_text = f"""
-    <h2>⚠️ RESULTADOS DIFERENTES!</h2>
-    <h3>Com outliers: {winner_with} vence | Sem outliers: {winner_without} vence</h3>
-    <p>Isso significa que casos extremos estão influenciando significativamente os resultados. 
-    Para decisões estratégicas, recomenda-se focar na análise SEM outliers ({winner_without}).</p>
-    """
-
-st.markdown(f"""
-<div class="conclusion-card">
-    {conclusion_text}
-    <hr>
-    <h3>💡 Recomendação Final para Investidores:</h3>
-    <p>Com base na análise de ROI histórico, investimentos em <strong>{winner_without}</strong> 
-    demonstraram maior retorno consistente sobre o investimento quando consideramos 
-    o desempenho típico (sem outliers extremos).</p>
+# Explicação do ROI antes das conclusões
+st.markdown("""
+<div style="background: linear-gradient(135deg, #F0F8FF, #E6F3FF); padding: 2rem; border-radius: 15px; border-left: 5px solid #4169E1; margin: 2rem 0;">
+    <h2>🤔 Mas afinal, o que é ROI?</h2>
+    <p><strong>ROI significa "Return on Investment" (Retorno sobre Investimento)</strong></p>
+    
+    <h3>📊 Fórmula Simples:</h3>
+    <p style="font-size: 1.2em; background: #FFF; padding: 1rem; border-radius: 10px; text-align: center;">
+        <strong>ROI = (Dinheiro Ganho - Dinheiro Investido) ÷ Dinheiro Investido</strong>
+    </p>
+    
+    <h3>🎬 Exemplo Prático no Cinema:</h3>
+    <ul>
+        <li>💰 <strong>Investimento:</strong> Estúdio gasta $100 milhões para fazer um filme</li>
+        <li>🎟️ <strong>Retorno:</strong> Filme arrecada $300 milhões no mundo todo</li>
+        <li>📈 <strong>ROI:</strong> (300 - 100) ÷ 100 = 2.0 (ou 200%)</li>
+        <li>✨ <strong>Significado:</strong> Para cada $1 investido, o estúdio ganhou $2 de lucro!</li>
+    </ul>
+    
+    <div style="background: #FFD700; color: #333; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
+        <strong>🎯 Por que ROI é importante?</strong><br>
+        Mostra qual franquia é mais eficiente em transformar dinheiro investido em lucro!
+    </div>
 </div>
 """, unsafe_allow_html=True)
+
+# Conclusão geral com cores específicas
+if winner_with == winner_without:
+    # Resultado consistente - usar cor da franquia vencedora
+    if winner_with == "Marvel":
+        conclusion_bg = "linear-gradient(135deg, #E23636, #FF6B6B, #FFB6C1)"
+        text_color = "white"
+        winner_symbol = "⚡"
+        winner_theme = "Marvel - Cores vibrantes como o céu em ação dos filmes!"
+    else:
+        conclusion_bg = "linear-gradient(135deg, #0078F0, #4A90E2, #191970)"
+        text_color = "white"
+        winner_symbol = "🦇"
+        winner_theme = "DC - Cores escuras e intensas como Gotham City!"
+    
+    conclusion_text = f"""
+    <div style="background: {conclusion_bg}; padding: 2.5rem; border-radius: 20px; color: {text_color}; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 4px solid #FFD700;">
+        <h1 style="font-size: 3em;">{winner_symbol}</h1>
+        <h2>🎉 RESULTADO CONSISTENTE!</h2>
+        <h3 style="font-size: 2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">{winner_with} DOMINA EM AMBOS OS CENÁRIOS! {winner_symbol}</h3>
+        <p style="font-size: 1.3em; margin: 1.5rem 0;">
+            <strong>{winner_theme}</strong>
+        </p>
+        <p style="font-size: 1.1em;">
+            Isso significa que <strong>{winner_with}</strong> tem uma vantagem consistente e confiável no ROI, 
+            independentemente de incluirmos ou não casos extremos na análise.
+        </p>
+        
+        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px; margin: 2rem 0;">
+            <h3>💡 Recomendação Final para Investidores:</h3>
+            <p style="font-size: 1.2em;">
+                Com base na análise de ROI histórico, investimentos em <strong>{winner_with}</strong> 
+                demonstraram maior retorno consistente sobre o investimento. 
+                <br><br>
+                🎯 <strong>Confiabilidade:</strong> Vence tanto com quanto sem outliers!<br>
+                📈 <strong>Estratégia:</strong> Franquia mais segura para investimentos futuros!
+            </p>
+        </div>
+    </div>
+    """
+else:
+    # Resultados diferentes - mostrar ambas as franquias
+    conclusion_text = f"""
+    <div style="background: linear-gradient(45deg, #E23636, #0078F0); padding: 2.5rem; border-radius: 20px; color: white; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 4px solid #FFD700;">
+        <h1 style="font-size: 3em;">⚔️</h1>
+        <h2>⚠️ BATALHA ÉPICA - RESULTADOS DIFERENTES!</h2>
+        
+        <div style="display: flex; justify-content: space-around; margin: 2rem 0;">
+            <div style="background: linear-gradient(135deg, #E23636, #FF6B6B); padding: 1.5rem; border-radius: 15px; flex: 1; margin: 0 1rem;">
+                <h3>⚡ COM OUTLIERS</h3>
+                <h2>{winner_with} VENCE!</h2>
+                <p>Cores vibrantes como tempestades!</p>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #0078F0, #191970); padding: 1.5rem; border-radius: 15px; flex: 1; margin: 0 1rem;">
+                <h3>🦇 SEM OUTLIERS</h3>
+                <h2>{winner_without} VENCE!</h2>
+                <p>Cores escuras como a noite!</p>
+            </div>
+        </div>
+        
+        <p style="font-size: 1.1em;">
+            Isso significa que casos extremos estão influenciando significativamente os resultados!
+        </p>
+        
+        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px; margin: 2rem 0;">
+            <h3>💡 Recomendação Estratégica:</h3>
+            <p style="font-size: 1.2em;">
+                Para decisões de investimento, foque na análise <strong>SEM outliers</strong>:<br>
+                <span style="background: {'linear-gradient(135deg, #E23636, #FF6B6B)' if winner_without == 'Marvel' else 'linear-gradient(135deg, #0078F0, #191970)'}; padding: 0.5rem 1rem; border-radius: 10px; font-size: 1.3em;">
+                    🏆 {winner_without} é a escolha mais segura!
+                </span>
+                <br><br>
+                🎯 Representa o desempenho típico, sem casos extremos<br>
+                📊 Mais confiável para previsões futuras
+            </p>
+        </div>
+    </div>
+    """
+
+st.markdown(conclusion_text, unsafe_allow_html=True)
 
 if not include_outliers:
     st.success("""

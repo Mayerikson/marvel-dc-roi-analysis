@@ -11,7 +11,7 @@ Descobrir qual franquia entrega melhor eficiência financeira baseada em dados r
 - **Métricas:** Orçamento, Bilheteria Mundial, ROI
 
 ## 🚀 Como usar
-1. Acesse: [Link do seu app]
+1. Acesse: [[Link do seu app](https://marvel-dc-roi-analysis.streamlit.app/)]
 2. Explore as 5 perguntas de negócio
 3. Veja quem ganha o "Oscar do ROI"
 

@@ -7,10 +7,7 @@ import plotly.express as px
 try:
     df = pd.read_csv("db.csv", encoding="latin1")
 except UnicodeDecodeError:
-    
-# Load dataset
-df = pd.read_csv("db.csv")
-
+    df = pd.read_csv("db.csv", encoding="cp1252")
 
 # Remove unnamed column if exists
 df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
